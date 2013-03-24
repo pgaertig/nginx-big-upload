@@ -1,0 +1,112 @@
+#!/usr/bin/env ruby
+
+require './test_helper'
+require 'cgi'
+
+# Test and examples of backend_file_storage_handler use.
+
+# Copyright (C) 2013 Piotr Gaertig
+
+class BackendFileStorageUploadTest < Test::Unit::TestCase
+
+  attr_accessor :http, :req
+
+  def setup
+    @http = Net::HTTP.new 'localhost', 8088
+    @http.set_debug_output $stderr
+    @req = Net::HTTP::Put.new 'http://localhost:8088/upload/backend'
+    @upload_path = "/tmp"
+  end
+
+  def test_one_shot_upload
+    req.body = "Part1"
+    req['session-id'] = '12345'
+    res = http.request(req)
+    assert_equal "202", res.code
+    assert_match /id=/, res.body
+
+    params = CGI::parse(res.body)           #echoed params in body
+    assert_equal ["12345"], params['id']
+    assert_equal ["/tmp/12345"], params['path']
+    assert_equal ["5"], params['size']
+    #assert_equal ["thefile.txt"], params['name']
+
+    assert_equal "testvalue", res.header["X-Test"]  #check header passing
+  end
+
+  def test_two_parts
+    assert_new_file '12347', "Part1Part2" do
+      req.body = "Part1"
+      req['session-id'] = '12347'
+      req['content-range'] = 'bytes 0-4/10'
+      res = http.request(req)
+
+      assert_equal "201", res.code
+      assert_equal "0-4/10", res.body
+
+      assert_file_content '12347', 'Part1'
+
+      #part2 goes
+      req.body = "Part2"
+      req['content-range'] = 'bytes 5-9/10'
+      res = http.request(req)
+
+      assert_equal "202", res.code
+      assert_match /id=/, res.body
+
+      params = CGI::parse(res.body)  #echoed params in body
+      assert_equal ["12347"], params['id']
+      assert_equal ["/tmp/12347"], params['path']
+      assert_equal ["10"], params['size']
+      #assert_equal ["thefile.txt"], params['name']
+
+      assert_equal "testvalue", res.header["X-Test"]  #check header passing
+    end
+  end
+
+  def test_content_disposition
+    req.body = "Part1"
+    req['session-id'] = '12345'
+    req['Content-Disposition'] = 'attachment; filename=somename.txt'
+    res = http.request(req)
+    assert_equal "202", res.code
+    assert_match /name=/, res.body
+    params = CGI::parse(res.body)
+    assert_equal ["somename.txt"], params['name']
+
+    req['Content-Disposition'] = 'ATTACHMENT; FILENAME=somename.txt'
+    res = http.request(req)
+    assert_equal "202", res.code
+    assert_match /name=/, res.body
+    params = CGI::parse(res.body)
+    assert_equal ["somename.txt"], params['name']
+
+    #UTF-8
+    req['Content-Disposition'] = 'attachment; filename=一部のテキスト.txt'
+    res = http.request(req)
+    assert_equal "202", res.code
+    assert_match /name=/, res.body
+    params = CGI::parse(res.body)
+    assert_equal ["一部のテキスト.txt"], params['name']
+
+    #quotes UTF-8
+    req['Content-Disposition'] = 'attachment; filename="gęślę.txt"'
+    res = http.request(req)
+    assert_equal "202", res.code
+    assert_match /name=/, res.body
+    params = CGI::parse(res.body)
+    assert_equal ["gęślę.txt"], params['name']
+
+
+    #RFC conforming UTF-8 notation http://greenbytes.de/tech/webdav/rfc5987.html
+    req['Content-Disposition'] = "attachment; filename*=UTF-8''źdźbło.dat"
+    res = http.request(req)
+    assert_equal "202", res.code
+    assert_match /name=/, res.body
+    params = CGI::parse(res.body)
+    assert_equal ["źdźbło.dat"], params['name']
+
+  end
+
+
+end
