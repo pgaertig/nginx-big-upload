@@ -1,4 +1,4 @@
--- Copyrigtht (C) 2013 Piotr Gaertig
+-- Copyright (C) 2013 Piotr Gaertig
 
 local function report_result(info)
   if type(info) == "table" then
@@ -33,7 +33,10 @@ local err
 local storage_handler
 if ngx.var.storage == 'backend_file' then
   local storage_handler_meta = require "backend_file_storage_handler"
-  storage_handler, err = storage_handler_meta:new(ngx.var.file_storage_path, "/bknd")
+  if not ngx.var.backend_url then
+    return report_result("$backend_url is not defined")
+  end
+  storage_handler, err = storage_handler_meta:new(ngx.var.file_storage_path, ngx.var.backend_url)
 else
   local storage_handler_meta = require "file_storage_handler"
   storage_handler, err = storage_handler_meta:new(ngx.var.file_storage_path)

@@ -18,8 +18,10 @@ local function end_backend(self)
   local pc = self.payload_context;
   -- last chunk commited?
   if pc.range_to + 1 == pc.range_total then
-    return ngx.location.capture(self.backend, { body =
-        ngx.encode_args({
+    ngx.req.set_header('Content-Type', 'application/x-www-form-urlencoded');
+    return ngx.location.capture(self.backend, {
+        method = ngx.HTTP_POST,
+        body = ngx.encode_args({
           size = pc.range_total,
           id = self.id,
           path = self.file_path,
