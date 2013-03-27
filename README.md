@@ -23,8 +23,8 @@ For some form of documentation please see tests directory.
 ## Benchmark
 
 Below is the result of `test/performance_test.rb` method `test_final_perf`, which tests nginx-big-upload (lua) vs nginx-upload-module (num)
-with chunked upload of same data and same backend. Each file is send in ~512KB chunks which means 51MB file
-is transferred in 100 requests. Times in seconds, user/system/total are rather related to script execution times, but real is the real one.
+with chunked upload of identical data to the same backend. Each file is sent in ~512KB chunks which means 51MB file
+is transferred in 100 requests. Times in seconds, user/system/total are rather related to test script execution times, but real is the real one.
 
                           user       system     total     real
     lua 51MB * 10 files   0.730000   0.780000   1.510000  (  3.244294)
