@@ -9,7 +9,7 @@ class Test::Unit::TestCase
     assert_not_empty id
     file = File.join @upload_path, id
     File.delete file if File.exists? file
-    assert_false File.exists?(file)
+    assert ! File.exists?(file)
     yield
     assert_file_content(id, content)
     File.delete file
@@ -28,8 +28,8 @@ class Test::Unit::TestCase
     assert_not_empty id
     file = File.join @upload_path, id
     File.delete file if File.exists? file
-    assert_false File.exists?(file)
+    assert ! File.exists?(file)
     yield
-    assert_false File.exists?(file)
+    assert ! File.exists?(file)
   end
 end

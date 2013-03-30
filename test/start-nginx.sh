@@ -1,5 +1,13 @@
 #!/bin/bash
+#!/bin/bash
 CDIR=`pwd`
+if [ -f ./nginx ]
+then
+  NGINX_BIN=./nginx
+else
+  NGINX_BIN=`which nginx`
+fi
 . ./stop-nginx.sh
-/usr/sbin/nginx -p $CDIR -c $CDIR/nginx-big-upload-test.conf &
+echo "Using $NGINX_BIN"
+$NGINX_BIN -p $CDIR -c $CDIR/nginx-big-upload-test.conf &
 sleep 1

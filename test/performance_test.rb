@@ -75,7 +75,7 @@ class BackendFileStorageUploadTest < Test::Unit::TestCase
       offset += chunk_size
     end
 
-    assert_true File.exists?(file)
+    assert File.exists?(file)
     assert_equal total_size, File.size(file)
     assert_equal 1, File.delete(file)
   end
