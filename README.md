@@ -13,9 +13,9 @@ For some form of documentation please see tests directory.
 
 ## nginx-big-upload vs nginx-upload-module
 
-I created this module as an user of excellent `nginx-upload-module` which processed many terabytes of data for several years. Sometimes I needed
-more features which were missing such as CRC32 calculation for resumable uploads. Unfortunately recently I realized that module may be abandoned, see [#41](https://github.com/vkholodkov/nginx-upload-module/issues/41),
-therefore I started a development of new solution which will compile with Nginx 1.3.8+ and will provide some area for enhancement. I preferred to use
+I created this module as an user of excellent `nginx-upload-module` which processed terabytes of data for several years. Sometimes I needed
+more features which were missing such as CRC32 calculation for resumable uploads. Unfortunately I suspect that module may be abandoned, see [#41](https://github.com/vkholodkov/nginx-upload-module/issues/41),
+therefore I started a development of new solution which will work with Nginx 1.3.8+ and will provide some area for enhancement. I prefer to use
 Lua module which gives very short development/test iterations in reload per request mode. Here is Pros/Cons list of this module in comparison to `nginx-upload-module`:
 
 * Pro: no status file because current offset is equal to size of linearly uploaded file;
@@ -25,7 +25,7 @@ Lua module which gives very short development/test iterations in reload per requ
 * Cons: no multi-part POST format supported, only RAW file in PUT/POST request; check [lua-resty-upload](https://github.com/agentzh/lua-resty-upload);
 * Cons: slightly slower because of Lua layer, but this is very small factor IMO, check the benchmark below;
 * Cons/Pro: linear resumable - there is no way to upload last chunk as first in row, chunks must be uploaded sequentially; this is Pro actually because prevents DoS attacks with malicious upload request;
-* Cons: no upload rate limit setting - I don't see a need for it - only one client can upload a given file so it is better to throttle downloads
+* Cons: no upload rate limit setting - only one client can upload a given file so it is better to throttle downloads.
 
 ### Benchmark
 
@@ -41,8 +41,8 @@ is transferred in 100 requests. Times in seconds. Fileds user/system/total are r
 
 ## Prerequisites
 
-* Nginx with Lua module built in. LuaJIT is preferred as runtime implementation. Hint: check if LuaJIT is used with `ldd nginx`.
-* To run tests you also need nginx with [nginx-upload-module v2.2](https://github.com/vkholodkov/nginx-upload-module/tree/2.2) and Ruby 2.0, but may work with earlier versions.
+* Nginx with Lua module built in. LuaJIT is preferred as runtime implementation. Hint: run `ldd nginx` to make sure LuaJIT will be used.
+* To run tests you also need nginx with [nginx-upload-module v2.2](https://github.com/vkholodkov/nginx-upload-module/tree/2.2) and Ruby 2.0, but 1.9.x may also work.
 
 ## TODO:
 * storage handler with back-end subrequest before first chunk - e.g. to check if upload is acceptable or to track temporary file
