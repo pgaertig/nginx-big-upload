@@ -28,6 +28,10 @@ local function report_result(info)
   end
 end
 
+if ngx.var.package_path then
+  package.path = ngx.var.package_path .. ";" .. package.path
+end
+
 local reqp = require "request_processor"
 local err
 local storage_handler

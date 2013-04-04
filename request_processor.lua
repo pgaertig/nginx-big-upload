@@ -17,7 +17,7 @@ module(...)
 local mt = { __index = _M }
 
 _M.chunk_size = 4096
-_M.socket_timeout = 1000
+_M.socket_timeout = 30000
 
 local function raw_body_by_chunk(self)
     if self.left == 0 then
@@ -29,13 +29,10 @@ local function raw_body_by_chunk(self)
     self.left = self.left - current_chunk_size
     local chunk, err =  self.socket:receive(current_chunk_size)
     if err then
-        return nil, nil, err
+        return nil, err
     end
 
-    if not chunk then
-        return nil
-    end
-    return chunk, err
+    return chunk
 end
 
 -- Checks request headers and creates upload context instance
@@ -109,6 +106,10 @@ function new(self, handler)
 
     local get_name = function()
       local content_disposition = headers['Content-Disposition']
+      if type(content_disposition) == "table" then
+        -- Opera attaches second header on xhr.send - first one is ours
+        content_disposition = content_disposition[1]
+      end
       if content_disposition then
         -- http://greenbytes.de/tech/webdav/rfc5987.html
         local mname = string.match(
