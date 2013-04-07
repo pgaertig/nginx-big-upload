@@ -6,8 +6,8 @@ requests. This extension requires Nginx compiled with [HttpLuaModule](http://wik
 
 ## Status
 
-I started to write this project on 20th of March 2013.
-The goal is to have it deployed on production system in mid-April,
+v1.0.0 is deployed in production since 4 Apr 2013. ~50GB/day, ~100 users/day with mixed browsers.
+
 For some form of documentation please see tests directory.
 
 
@@ -61,6 +61,7 @@ server-side does not store any information to continue calculation of checksums 
 should remember the value of `X-Checksum` response header of last chunk and put it into `X-Last-Checksum` request header of next chunk.
 
 Simplified example:
+
     > PUT /upload
     > Content-Range: bytes 0-4/10
     >
