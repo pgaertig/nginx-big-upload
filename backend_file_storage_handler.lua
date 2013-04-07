@@ -14,39 +14,37 @@ local error = error
 
 module(...)
 
-local function end_backend(self)
-  local pc = self.payload_context;
+local function end_backend(self, ctx)
   -- last chunk commited?
-  if pc.range_to + 1 == pc.range_total then
-    ngx.req.set_header('Content-Type', 'application/x-www-form-urlencoded');
+  if ctx.range_to + 1 == ctx.range_total then
+    ngx.req.set_header('Content-Type', 'application/x-www-form-urlencoded')
+    if ctx.checksum then ngx.req.set_header('X-Checksum', ctx.checksum) end
     return ngx.location.capture(self.backend, {
         method = ngx.HTTP_POST,
         body = ngx.encode_args({
-          size = pc.range_total,
-          id = self.id,
-          path = self.file_path,
-          name = pc.get_name()
+          size = ctx.range_total,
+          id = ctx.id,
+          path = ctx.file_path,
+          name = ctx.get_name(),
+          checksum = ctx.checksum
         })
     })
   end
 end
 
--- overriden
-local function on_body_start(self, id, payload_context)
-  self.id = id
-  self.payload_context = payload_context
-  local file_path = concat({self.dir, id}, "/")
-  self.file_path = file_path
-  return self:init_file()
+-- override
+local function on_body_start(self, ctx)
+  local file_path = concat({self.dir, ctx.id}, "/")
+  ctx.file_path = file_path
+  return self:init_file(ctx)
 end
 
--- overriden
-local function on_body_end(self)
+-- override
+local function on_body_end(self, ctx)
   self:close_file()
   -- call backend if finished
-  local res = end_backend(self)
-  local pc = self.payload_context
-  return {201, string.format("0-%d/%d", pc.range_to, pc.range_total), response = res }
+  local res = end_backend(self, ctx)
+  return {201, string.format("0-%d/%d", ctx.range_to, ctx.range_total), response = res }
 end
 
 
@@ -58,7 +56,7 @@ function _M:new(dir, backend)
         super = file_storage_handler:new(dir),
         backend = backend,
         on_body_start = on_body_start,
-        on_body_end = on_body_end,
+        on_body_end = on_body_end
     }
     return setmetatable(inst, { __index = function(t,k) return t.super[k] end} )
 end

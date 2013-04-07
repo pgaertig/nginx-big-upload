@@ -10,6 +10,8 @@ local string = string
 local math = math
 local ngx = ngx
 local type = type
+local pairs = pairs
+local crc32 = crc32
 
 
 module(...)
@@ -36,9 +38,8 @@ local function raw_body_by_chunk(self)
 end
 
 -- Checks request headers and creates upload context instance
-function new(self, handler)
-    local range_from, range_to, range_total
-
+function new(self, handlers)
+    local ctx = {}
     local headers = ngx.req.get_headers()
 
     local content_length = tonumber(headers["content-length"])
@@ -59,6 +60,7 @@ function new(self, handler)
       end
     end
 
+    local range_from, range_to, range_total
     local content_range = headers["content-range"] or headers["x-content-range"]
     if content_range then
       range_from, range_to, range_total = content_range:match("%s*bytes%s+(%d+)-(%d+)/(%d+)")
@@ -75,6 +77,10 @@ function new(self, handler)
       range_total = content_length
     end
 
+    ctx.range_from = range_from
+    ctx.range_to = range_to
+    ctx.range_total = range_total
+
     -- 0-0/0 means empty file 0-0/1 means one byte file, paradox but works
     if not(range_from == 0 and range_to == 0 and range_total == 0) then
         -- these should fail: 3-2/4 or 0-4/4
@@ -88,23 +94,11 @@ function new(self, handler)
         end
     end
 
-    if not handler then
-      return nil, "Configuration error: missing handler"
+    if not handlers or #handlers == 0 then
+      return nil, "Configuration error: no handlers defined"
     end
 
-    if not handler.on_body_start then
-      return nil, "Configuration error: handler has no on_body_start handler"
-    end
-
-    if not handler.on_body then
-      return nil, "Configuration error: handler has no on_body handler"
-    end
-
-    if not handler.on_body_end then
-      return nil, "Configuration error: handler has no on_body_end handler"
-    end
-
-    local get_name = function()
+    ctx.get_name = function()
       local content_disposition = headers['Content-Disposition']
       if type(content_disposition) == "table" then
         -- Opera attaches second header on xhr.send - first one is ours
@@ -124,6 +118,22 @@ function new(self, handler)
       return session_id --default
     end
 
+    local last_checksum = headers['X-Last-Checksum'] -- checksum of last server-side chunk
+    if last_checksum then
+      if not crc32.validhex(last_checksum) then
+        return nil, {400, "Bad X-Last-Checksum format: " .. last_checksum}
+      end
+      ctx.last_checksum = last_checksum
+    end
+
+    local checksum = headers['X-Checksum'] -- checksum from beginning of file up to current chunk
+    if checksum then
+      if not crc32.validhex(checksum) then
+        return nil, {400, "Bad X-Checksum format: " .. checksum}
+      end
+      ctx.checksum = checksum
+    end
+
 
     local socket
 
@@ -137,27 +147,26 @@ function new(self, handler)
        socket = sk
     end
 
+    ctx.id = session_id
+
     return setmetatable({
         socket = socket,
         chunk_size = chunk_size,
         content_length = content_length,
         left = content_length,
         session_id = session_id,
-        handler = handler,
-        payload_context = {
-            get_name = get_name,
-            range_from = range_from,
-            range_to = range_to,
-            range_total = range_total
-        }
+        handlers = handlers,
+        payload_context = ctx
     }, mt)
 end
 
 function process(self)
-  local result = self.handler:on_body_start(self.session_id, self.payload_context)
-  if result then
-    -- result from on_body_start means something important happened to stop upload
-    return result
+  for i, h in pairs(self.handlers) do
+    local result = h:on_body_start(self.payload_context)
+    if result then
+      -- result from on_body_start means something important happened to stop upload
+      return result
+    end
   end
   if self.content_length ~= 0 then
       while true do
@@ -168,13 +177,18 @@ function process(self)
           end
           break
         end
-        local err = self.handler:on_body(chunk)
-        if err then
-          return err
+        for i, h in pairs(self.handlers) do
+          local err = h:on_body(self.payload_context, chunk)
+          if err then
+            return err
+          end
         end
       end
   end
-  return self.handler:on_body_end()
+  for i, h in pairs(self.handlers) do
+    local result = h:on_body_end(self.payload_context)
+    if result then return result end
+  end
 end
 
 setmetatable(_M, {

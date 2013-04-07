@@ -105,8 +105,25 @@ class BackendFileStorageUploadTest < Test::Unit::TestCase
     assert_match /name=/, res.body
     params = CGI::parse(res.body)
     assert_equal ["źdźbło.dat"], params['name']
-
   end
 
+  # Checksum should be passed even without crc32 handler
+  def test_checksum_passing_from_client
+    req.body = "SomeContent"
+    req['session-id'] = '12350'
+    req['X-Checksum'] = '33044b53'
+    res = http.request(req)
+    assert_equal "202", res.code
+    assert_match /id=/, res.body
 
+    params = CGI::parse(res.body)           #echoed params in body
+    assert_equal ["12350"], params['id']
+    assert_equal ["/tmp/12350"], params['path']
+    assert_equal ["11"], params['size']
+    assert_equal ["33044b53"], params['checksum']
+                                            #assert_equal ["thefile.txt"], params['name']
+
+    assert_equal "testvalue", res.header["X-Test"]  #check header passing
+    assert_equal "33044b53", res.header["X-Checksum"]
+  end
 end

@@ -1,5 +1,14 @@
 -- Copyright (C) 2013 Piotr Gaertig
 
+local config = {
+  package_path = ngx.var.package_path,
+  bu_checksum = ('on' ==  ngx.var.bu_checksum)
+}
+
+if config.package_path then
+  package.path = config.package_path .. ";" .. package.path
+end
+local crc32 = require('crc32')
 local function report_result(info)
   if type(info) == "table" then
     if info.response then
@@ -28,12 +37,9 @@ local function report_result(info)
   end
 end
 
-if ngx.var.package_path then
-  package.path = ngx.var.package_path .. ";" .. package.path
-end
-
 local reqp = require "request_processor"
 local err
+local handlers = {}
 local storage_handler
 if ngx.var.storage == 'backend_file' then
   local storage_handler_meta = require "backend_file_storage_handler"
@@ -46,14 +52,16 @@ else
   storage_handler, err = storage_handler_meta:new(ngx.var.file_storage_path)
 end
 
+
+if config.bu_checksum then
+  table.insert(handlers, crc32.handler())
+end
+table.insert(handlers, storage_handler)
+
 if err then
   return report_result(err)
 end
 
-local ctx, err = reqp:new(storage_handler)
-
-
-
--- ngx.req.clear_header("Accept-Encoding");
+local ctx, err = reqp:new(handlers)
 return report_result(err or ctx:process())
 

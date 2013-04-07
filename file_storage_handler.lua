@@ -18,11 +18,10 @@ module(...)
 -- local mt = { __index = _M }
 
 
-local function init_file(self)
-  local pc = self.payload_context
-  local file_path = self.file_path
+local function init_file(self, ctx)
+  local file_path = ctx.file_path
   local file
-  if (pc.range_from > 0) then
+  if (ctx.range_from > 0) then
     -- file must exist for follow up chunks
     file = io.open(file_path, 'r+')  -- Open file for update (reading and writing).
     if not file then
@@ -30,19 +29,19 @@ local function init_file(self)
       return {409, "0-0/0"}
     end
     local size = file:seek("end")
-    if size < pc.range_from then
+    if size < ctx.range_from then
         -- missing chunk? return what we have got so far
         file:close()
-        return {409, string.format("0-%d/%d", size - 1, pc.range_total) }
+        return {409, string.format("0-%d/%d", size - 1, ctx.range_total) }
     end
 
     -- requests may be resend with same chunk
-    if size ~= pc.range_from then
-        file:seek("set", pc.range_from)
+    if size ~= ctx.range_from then
+        file:seek("set", ctx.range_from)
     end
   else
     -- write from scratch
-    file = io.open(self.file_path, "w") -- Truncate to zero length or create file for writing.
+    file = io.open(ctx.file_path, "w") -- Truncate to zero length or create file for writing.
   end
 
   if not file then
@@ -57,27 +56,22 @@ local function close_file(self)
   end
 end
 
-local function on_body_start(self, id, payload_context)
-  self.id = id
-  self.payload_context = payload_context
-
-  local file_path = concat({self.dir, id}, "/")
-  self.file_path = file_path
-  return self:init_file()
+local function on_body_start(self, ctx)
+  ctx.file_path = concat({self.dir, ctx.id}, "/")
+  return self:init_file(ctx)
 end
 
 -- writes body data
-local function on_body(self, body)
+local function on_body(self, ctx, body)
   if self.file then
     self.file:write(body)
   end
 end
 
-local function on_body_end(self)
+local function on_body_end(self, ctx)
   close_file(self)
   -- return what what we have on server
-  local pc = self.payload_context
-  return {201, string.format("0-%d/%d", pc.range_to, pc.range_total) }
+  return {201, string.format("0-%d/%d", ctx.range_to, ctx.range_total) }
 end
 
 
@@ -85,9 +79,6 @@ function _M:new(dir)
     return setmetatable({
        dir = dir or '/tmp',
        file = nil,
-       file_path = nil,
-       id = nil,
-       payload_context = nil,
 
        -- interface functions
        on_body = on_body,

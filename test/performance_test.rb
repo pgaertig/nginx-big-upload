@@ -11,11 +11,12 @@ class BackendFileStorageUploadTest < Test::Unit::TestCase
     @http = Net::HTTP.new 'localhost', 8088
     #http.set_debug_output $stderr
     @upload_path = "/tmp"
+    @body512k = "Performant" * 51 * 1024 # ~512KB chunk
   end
 
   def test_lua_perf
     #51MB
-    run_cycle('perflua', 'http://localhost:8088/upload/perf-lua', 100)
+    run_cycle('perflua', 'http://localhost:8088/upload/perf-bu', 100)
   end
 
   def test_num_perf
@@ -27,26 +28,21 @@ class BackendFileStorageUploadTest < Test::Unit::TestCase
   def test_final_perf
     n = 10
     Benchmark.bm do |x|
-      x.report("lua 51MB * 10 files") {
-        n.times {
-          run_cycle('perflua', 'http://localhost:8088/upload/perf-lua', 100)
-        }
-      }
-      x.report("num 51MB * 10 files") {
-        n.times {
-          run_cycle('perfnum', 'http://localhost:8088/upload/perf-num', 100)
-        }
-      }
-      x.report("lua 204MB * 10 files") {
-        n.times {
-          run_cycle('perflua', 'http://localhost:8088/upload/perf-lua', 400)
-        }
-      }
-      x.report("num 204MB * 10 files") {
-        n.times {
-          run_cycle('perfnum', 'http://localhost:8088/upload/perf-num', 400)
-        }
-      }
+      x.report("bu     51MB * 10") { n.times {
+         run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu', 100)
+      }}
+      x.report("bu_crc 51MB * 10") { n.times {
+        run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu-crc', 100)
+      }}
+      x.report("num    51MB * 10") { n.times {
+         run_cycle('perfnum', 'http://localhost:8088/upload/perf-num', 100)
+      }}
+      x.report("bu    204MB * 10") {n.times {
+         run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu', 400)
+      }}
+      x.report("num   204MB * 10") {n.times {
+         run_cycle('perfnum', 'http://localhost:8088/upload/perf-num', 400)
+      }}
     end
   end
 
@@ -56,7 +52,7 @@ class BackendFileStorageUploadTest < Test::Unit::TestCase
     file = "/tmp/#{id}"
     File.delete(file) if File.exists?(file)
     req = Net::HTTP::Post.new uri
-    req.body = "Performant" * 51 * 1024  # ~512KB chunk
+    req.body = @body512k
     req['content-type'] = 'application/octet-stream'
     req['Content-Disposition'] = 'attachment; filename="somename.dat"'
     req['session-id'] = id
@@ -70,7 +66,7 @@ class BackendFileStorageUploadTest < Test::Unit::TestCase
         assert_equal "202", res.code
         assert_match /path/, res.body
       else
-        assert_equal "201", res.code
+        assert_equal "201", res.code, res.body
       end
       offset += chunk_size
     end
