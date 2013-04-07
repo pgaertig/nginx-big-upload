@@ -9,5 +9,5 @@ else
 fi
 . ./stop-nginx.sh
 echo "Using $NGINX_BIN"
-$NGINX_BIN -p $CDIR -c $CDIR/nginx-big-upload-test.conf &
+$NGINX_BIN -p $CDIR -c $CDIR/nginx-big-upload-test.conf
 sleep 1

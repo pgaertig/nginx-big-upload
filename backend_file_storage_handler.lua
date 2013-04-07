@@ -18,7 +18,6 @@ local function end_backend(self, ctx)
   -- last chunk commited?
   if ctx.range_to + 1 == ctx.range_total then
     ngx.req.set_header('Content-Type', 'application/x-www-form-urlencoded')
-    if ctx.checksum then ngx.req.set_header('X-Checksum', ctx.checksum) end
     return ngx.location.capture(self.backend, {
         method = ngx.HTTP_POST,
         body = ngx.encode_args({

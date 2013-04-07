@@ -13,7 +13,7 @@ class FileStorageUploadTest < Test::Unit::TestCase
 
   def setup
     @http = Net::HTTP.new 'localhost', 8088
-    @http.set_debug_output $stderr
+    @http.set_debug_output $stderr if $VERBOSE
     @req = Net::HTTP::Put.new 'http://localhost:8088/upload/resumable'
     @upload_path = "/tmp"
   end

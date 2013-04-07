@@ -71,10 +71,14 @@ function new(self, handlers)
       range_to = tonumber(range_to)
       range_total = tonumber(range_total)
     else
-      -- no resumable upload but keep range info for handler
+      -- no resumable upload but keep range info for handlers
       range_from = 0
       range_to = math.max(content_length-1, 0)  -- CL=0 -> 0-0/0
       range_total = content_length
+    end
+
+    if range_from == 0 then
+      ctx.first_chunk = true
     end
 
     ctx.range_from = range_from
@@ -162,7 +166,7 @@ end
 
 function process(self)
   for i, h in pairs(self.handlers) do
-    local result = h:on_body_start(self.payload_context)
+    local result = h.on_body_start and h:on_body_start(self.payload_context)
     if result then
       -- result from on_body_start means something important happened to stop upload
       return result
@@ -178,15 +182,13 @@ function process(self)
           break
         end
         for i, h in pairs(self.handlers) do
-          local err = h:on_body(self.payload_context, chunk)
-          if err then
-            return err
-          end
+          local result = h.on_body and h:on_body(self.payload_context, chunk)
+          if result then return result end
         end
       end
   end
   for i, h in pairs(self.handlers) do
-    local result = h:on_body_end(self.payload_context)
+    local result = h.on_body_end and h:on_body_end(self.payload_context)
     if result then return result end
   end
 end

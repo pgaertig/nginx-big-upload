@@ -3,13 +3,12 @@ require 'benchmark'
 
 # Compares speed of nginx-big-upload and nginx-upload-module
 
-class BackendFileStorageUploadTest < Test::Unit::TestCase
+class PerformanceTest < Test::Unit::TestCase
 
   attr_accessor :http
 
   def setup
     @http = Net::HTTP.new 'localhost', 8088
-    #http.set_debug_output $stderr
     @upload_path = "/tmp"
     @body512k = "Performant" * 51 * 1024 # ~512KB chunk
   end
