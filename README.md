@@ -6,7 +6,7 @@ requests. This extension requires Nginx compiled with [HttpLuaModule](http://wik
 
 ## Status
 
-v1.0.0 is deployed in production since 4 Apr 2013. ~50GB/day, ~100 users/day with mixed browsers.
+v1.1.0 production ready. This module is deployed in production since 4 Apr 2013. ~50GB/day, ~100 users/day with mixed browsers.
 
 For some form of documentation please see tests directory.
 
