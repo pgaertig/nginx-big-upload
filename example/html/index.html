@@ -11,54 +11,75 @@
 
 <p>It is probably possible to simply copy the "doUpload" function into your code but not recommended (error handling isn't included, "alert" is used and the chunk size is hard coded).</p>
 
+<p>Please open browser's developer console to see detailed logs.</p>
+
 <input id="file-to-upload" type="file"><button id="upload-button">Upload</button>
+
+<div id="files">
+
+</div>
 
 
 <script>
 
 function doUpload(url, extraParams, sessionID, file, progress, success) {
-    var CHUNK_SIZE = 1048576, // 1MB per chunk
-        totalChunks = Math.ceil(file.size / CHUNK_SIZE),
+    var chunkSize = 32000,// this is first chunk size, which will be adaptively expanded depending on upload speed
         aborting = false,
         TO = null,
-        xhr,
+        lastChecksum = null,
+        offset = 0,
+        lastChunkTime = 4000; //used for adaptive chunk size recalculation
+    var xhr;
 
-        uploadNextChunk = function() {
+    function adjustChunkSize(startTime) {
+        var end = new Date().getTime();
+        var duration = end - startTime;
+        var kbps = Math.round(chunkSize / duration);
+        if (duration < 2000 && chunkSize < 8 * 1024 * 1024) {
+            //faster, increase chunk size up to 8MB, there will be no more increases over 4MB/s
+            // Important: remember about client_max_body_size in nginx config if you alter max chunk size
+            chunkSize <<= 1;
+            console.log("Increase chunkSize="+chunkSize+", kbps="+kbps);
+        } else if (duration > 10000 && chunkSize > 32 * 1024) {
+            //slower, down to min 32KB chunk size, there will be no more decreases below ~3.2KB/s
+            chunkSize >>= 1;
+            console.log("Increase chunkSize="+chunkSize+", kbps="+kbps);
+
+        }
+    }
+
+    var uploadNextChunk = function() {
             TO = null;
+            var chunkStartTime = new Date().getTime();
 
-            var chunkStart = currentChunk * CHUNK_SIZE,
-                chunkEnd = Math.min((currentChunk + 1) * CHUNK_SIZE, file.size) - 1,
-                currentBlob;
+            var chunkStart = offset,
+                chunkEnd = Math.min(offset + chunkSize, file.size) - 1;
 
-            if (currentChunk >= totalChunks) {
-                // Re-upload the last chunk
-                currentChunk = totalChunks - 1;
-            }
-
-            currentBlob = (file.slice || file.mozSlice || file.webkitSlice).call(file, chunkStart, chunkEnd + 1);
+            var currentBlob = (file.slice || file.mozSlice || file.webkitSlice).call(file, chunkStart, chunkEnd + 1);
 
             if (!(currentBlob && currentBlob.size > 0)) {
                 alert('Chunk size is 0'); // Sometimes the browser reports an empty chunk when it shouldn't, could retry here
                 return;
             }
 
-            progress(currentChunk / totalChunks);
 
             xhr = new XMLHttpRequest();
 
-            if (currentChunk === totalChunks - 1 && extraParams) {
+            if (chunkEnd === file.size - 1) {
                 // Add extra URL params on the last chunk
+                // Important: URL parameters passing this doesn't work currently, pass parameters via some custom "X-" header instead
                 xhr.open('POST', url + (url.indexOf('?') > -1 ? '&' : '?') + extraParams, true);
             } else {
                 xhr.open('POST', url, true);
             }
 
+            // chunking gives usually ~2sec progress you can skip this handler
             xhr.upload.addEventListener('progress', function(e) {
                 if (aborting) {
                     return;
                 }
 
-                progress((currentChunk + (e.loaded / CHUNK_SIZE)) / totalChunks);
+                progress((chunkStart + e.loaded) / file.size);
             });
 
             xhr.addEventListener('load', function() {
@@ -67,37 +88,27 @@ function doUpload(url, extraParams, sessionID, file, progress, success) {
                 }
 
                 if (xhr.readyState >= 4) {
-                    progress((currentChunk + 1) / totalChunks);
-
                     if (xhr.status === 200) {
+                        progress((chunkEnd + 1) / file.size);
 
                         // done
                         success(xhr.responseText);
 
                     } else if (xhr.status === 201) {
+                        offset = chunkEnd + 1;
+                        progress(offset / file.size);
+                        adjustChunkSize(chunkStartTime);
 
-                        var serverAmount = /^(\d+)-(\d+)/.exec(xhr.responseText),
-                            uploadedSoFar = serverAmount && parseInt(serverAmount[2], 10);
-
-                        if (uploadedSoFar && serverAmount[1] === '0') {
-                            // work out next chunk and continue
-
-                            currentChunk = Math.floor((uploadedSoFar + 1) / CHUNK_SIZE); // next chunk
-                            TO = setTimeout(uploadNextChunk, 1); // attempt to avoid xhrs sticking around longer than needed
-
-                        } else {
-                            // error, restart from top
-                            currentChunk = 0;
-                            TO = setTimeout(uploadNextChunk, 1); // attempt to avoid xhrs sticking around longer than needed
-                        }
-
+                        //the checksum of data uploaded so far
+                        lastChecksum = xhr.getResponseHeader('X-Checksum');
+                        TO = setTimeout(uploadNextChunk, 1); // attempt to avoid xhrs sticking around longer than needed
                     } else {
                         // error, restart chunk
                         try {
                             xhr.abort();
                         } catch (err) {}
 
-                        alert('A server error occurred'); // Could retry at this stage depending on xhr.status
+                        alert('A server error occurred: ' + xhr.responseText); // Could retry at this stage depending on xhr.status
                     }
                 }
             });
@@ -113,17 +124,20 @@ function doUpload(url, extraParams, sessionID, file, progress, success) {
                     xhr.abort();
                 } catch (err) {}
 
-                alert('A server error occurred'); // Could retry at this stage depending on xhr.status
+                alert('A server error occurred: ' + xhr.responseText); // Could retry at this stage depending on xhr.status
             });
 
             xhr.setRequestHeader('Content-Type', 'application/octet-stream');
-            xhr.setRequestHeader('Content-Disposition', 'attachment, filename="' + file.name + '"');
+            xhr.setRequestHeader('Content-Disposition', 'attachment; filename="' + encodeURIComponent(file.name) + '"');
             xhr.setRequestHeader('X-Content-Range', 'bytes ' + chunkStart + '-' + chunkEnd + '/' + file.size);
             xhr.setRequestHeader('X-Session-ID', sessionID);
+            if(lastChecksum) {
+                //client must pass the checksum of all previous chunks
+                //this way server will continue checksum calculation
+                xhr.setRequestHeader('X-Last-Checksum', lastChecksum);
+            }
             xhr.send(currentBlob);
-        },
-
-        currentChunk = 0;
+        };
 
     TO = setTimeout(uploadNextChunk, 1);
 
@@ -150,25 +164,47 @@ function doUpload(url, extraParams, sessionID, file, progress, success) {
 }
 
 
+//naive body param value extractor
+function getParam(body, name) {
+    var params = body.split('&');
+    for(var idx in params) {
+        var match = params[idx].match(new RegExp('^'+name+'=(.+)$'));
+        if(match && match.length > 1) {
+          return match[1];
+        }
+    }
+}
+
 
 // Feature detection for required features
 if (!!((typeof(File) !== 'undefined') && (typeof(Blob) !== 'undefined') && (typeof(FileList) !== 'undefined') && (Blob.prototype.webkitSlice|| Blob.prototype.mozSlice || Blob.prototype.slice))) {
 
     document.getElementById('upload-button').addEventListener('click', function() {
 
-        var file = document.getElementById('file-to-upload').files[0],
-            sessionID = Math.floor(Math.random() * 10000).toString;
-            // Suggest session ID is calculated more like:
-            //     sessionID = murmurhash3_32_gc(file.name, 3).toString(16) + sessionBaseHash;
-            // so it is based on the filename and the user's session so the file can be resumed and the session doesn't clash with another user
+        var file = document.getElementById('file-to-upload').files[0];
 
-        doUpload('/path/to/upload/url/', 'test=1', sessionID, file, function(progress) {
+        //generate random long number for SessionID
+        var sessionID = Math.round(Math.pow(10,17)*Math.random());
+
+        doUpload('/upload', 'test=1', sessionID, file, function(progress) {
 
             console.log('Total file progress is ' + Math.floor(progress * 100) + '%');
 
         }, function(responseText) {
 
+            var backendFileId = getParam(responseText, "id");
+            var backendFileName = getParam(responseText, "name");
+            var backendFileSize = getParam(responseText, "size");
             console.log('Success - server responded with:', responseText);
+
+
+            var div = document.createElement('div');
+            var link = document.createElement('a');
+            link.setAttribute('href', '/file/'+ backendFileId + "/" +backendFileName);
+            link.setAttribute('target', '_blank');
+            link.appendChild(document.createTextNode(backendFileName + " ("+backendFileSize+")"));
+            div.appendChild(link);
+            document.getElementById("files").appendChild(div);
 
         });
 
