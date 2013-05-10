@@ -1,0 +1,7 @@
+Changes with nginx-big-upload 1.1.0                           24 Apr 2013
+
+  *) Feature: CRC32 checksum
+
+Changes with nginx-big-upload 1.0.0                            4 Apr 2013
+
+  *) Initial release
