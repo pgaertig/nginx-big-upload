@@ -25,32 +25,33 @@ Tested with:
 This module requires LuaJIT and nginx with [HttpLuaModule](http://wiki.nginx.org/HttpLuaModule) installed in your system.
 If you work with Ubuntu (12.04 Precise Pangolin LTS) follow these steps:
 
-- Install using official packages or from [LuaJIT](http://www.lua.org/) which is newer.
+- Install LuaJIT using official packages or from [LuaJIT source](http://www.lua.org/) which should be up-to-date.
 
         sudo apt-get install luajit
 
-- Build nginx with Lua support from official sources
+- You have to build nginx from sources with Lua module and LuaJIT support. Precompiled nginx packages depend on Lua interpreter instead of faster LuaJIT.
 
         #register PGP keys
         wget --quiet -O - http://nginx.org/keys/nginx_signing.key | sudo apt-key add -
 
-        #Create /etc/apt/sources.list.d/nginx.list with these entries
+        #Create /etc/apt/sources.list.d/nginx-stable.list with these entries
         deb http://ppa.launchpad.net/nginx/stable/ubuntu precise main
         deb-src http://ppa.launchpad.net/nginx/stable/ubuntu precise main
 
-        #Run update apt lists
+        #Update package lists
         sudo apt-get update
 
-        #Create and go to directory for nginx source and compilation task, e.g. ~/mynginx
+        #Create and go to directory for nginx source and compilation task, e.g. ~/mynginx,
+        #This will download nginx sources with Ubuntu/Debian package configs
         sudo apt-get source nginx
         sudo apt-get build-dep nginx
 
-        #Export LuaJIT paths.
-        #Find them with `locate libluajit`
+        #Export LuaJIT paths. Find them with `locate libluajit`
 
         export LUAJIT_LIB=/usr/lib/x86_64-linux-gnu
         export LUAJIT_INC=/usr/include/luajit-2.0
 
+        #Go to
         cd ~/mynginx/nginx-1.4.1
 
         #Edit debian/rules to remove modules you don't need in nginx-extras configuration,
@@ -71,8 +72,8 @@ If you work with Ubuntu (12.04 Precise Pangolin LTS) follow these steps:
         # Should output line similar to:
         #   libluajit-5.1.so.2 => /usr/local/lib/libluajit-5.1.so.2 (0x00002aec3f2a2000)
         #   libluajit-5.1.so.2 => /usr/lib/x86_64-linux-gnu/libluajit-5.1.so.2 (0x00007f702a8b1000)
-        # The important is to have word `jit`, without that it
-        # means nginx will use base Lua interpreter, then check LUAJIT paths.
+        # The important is to have word `jit`, without it nginx will use base
+        # Lua interpreter, check LUAJIT paths.
 
 - Download `nginx-big-upload` files somewhere. Set up `$package_path` variable and `content_by_lua_file` directive to dowload location. Remember that all relative paths are relative to nginx config file.
 
@@ -155,9 +156,6 @@ is transferred in 100 requests. Times in seconds. Fileds user/system/total are r
     num    51MB * 10  0.680000   0.920000   1.600000 (  2.677721)  #nginx 1.2.7
     bu    204MB * 10  2.520000   3.510000   6.030000 ( 12.576817)  #nginx 1.2.7
     num   204MB * 10  2.480000   3.940000   6.420000 ( 10.818588)  #nginx 1.2.7
-    bu     51MB * 10  2.270000   2.760000   5.030000 ( 10.058877)  #nginx 1.4.1
-    bu_crc 51MB * 10  2.190000   2.670000   4.860000 (  9.919086)  #nginx 1.4.1
-    bu    204MB * 10  8.900000  10.410000  19.310000 ( 39.150926)  #nginx 1.4.1
 
 ## TODO:
 * SHA1 calculation
