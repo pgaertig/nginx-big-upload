@@ -1,14 +1,17 @@
+-- Main nginx-big-upload file which is specified in nginx config files.
 -- Copyright (C) 2013 Piotr Gaertig
 
 local config = {
   package_path = ngx.var.package_path,
-  bu_checksum = ('on' ==  ngx.var.bu_checksum)
+  bu_checksum = ('on' ==  ngx.var.bu_checksum),
+  bu_sha1 = ('on' == ngx.var.bu_sha1)
 }
 
 if config.package_path then
   package.path = config.package_path .. ";" .. package.path
 end
 local crc32 = require('crc32')
+local sha1= require('sha1_handler')
 local function report_result(info)
   if type(info) == "table" then
     if info.response then
@@ -55,6 +58,9 @@ end
 
 if config.bu_checksum then
   table.insert(handlers, crc32.handler())
+end
+if config.bu_sha1 then
+  table.insert(handlers, sha1.handler(ngx.var.file_storage_path))
 end
 table.insert(handlers, storage_handler)
 

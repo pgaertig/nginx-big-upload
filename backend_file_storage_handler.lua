@@ -25,7 +25,8 @@ local function end_backend(self, ctx)
           id = ctx.id,
           path = ctx.file_path,
           name = ctx.get_name(),
-          checksum = ctx.checksum
+          checksum = ctx.checksum,
+          sha1 = ctx.sha1
         })
     })
   end

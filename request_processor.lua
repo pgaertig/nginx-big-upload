@@ -12,6 +12,7 @@ local ngx = ngx
 local type = type
 local pairs = pairs
 local crc32 = crc32
+local sha1_handler = sha1_handler
 
 
 module(...)
@@ -84,18 +85,25 @@ function new(self, handlers)
     ctx.range_from = range_from
     ctx.range_to = range_to
     ctx.range_total = range_total
+    ctx.content_length = content_length
 
     -- 0-0/0 means empty file 0-0/1 means one byte file, paradox but works
-    if not(range_from == 0 and range_to == 0 and range_total == 0) then
-        -- these should fail: 3-2/4 or 0-4/4
-        if range_from > range_to or range_to > range_total-1 then
-          return nil, {412, string.format("Range data invalid %d-%d/%d", range_to, range_from, range_total)}
-        end
+    if range_from == 0 and range_to == 0 and range_total == 0 then
+      if content_length ~= 0 then
+        return nil, {412, "Range is zero but Content-Length is non zero"}
+      end
+    else
+      -- some more weird range tests
 
-        --
-        if content_length-1 ~= range_to - range_from then
-          return nil, {412, "Range size does not match Content-Length"}
-        end
+      -- these should fail: 3-2/4 or 0-4/4
+      if range_from > range_to or range_to > range_total-1 then
+        return nil, {412, string.format("Range data invalid %d-%d/%d", range_to, range_from, range_total)}
+      end
+
+      --
+      if content_length-1 ~= range_to - range_from then
+        return nil, {412, "Range size does not match Content-Length"}
+      end
     end
 
     if not handlers or #handlers == 0 then
@@ -136,6 +144,14 @@ function new(self, handlers)
         return nil, {400, "Bad X-Checksum format: " .. checksum}
       end
       ctx.checksum = checksum
+    end
+
+    local xsha1 = headers['X-SHA1'] -- checksum from beginning of file up to current chunk
+    if xsha1 then
+      if not sha1_handler.validhex(xsha1) then
+        return nil, {400, "Bad X-SHA1 format: " .. xsha1}
+      end
+      ctx.sha1 = xsha1
     end
 
 
