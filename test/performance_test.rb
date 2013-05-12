@@ -18,10 +18,10 @@ class PerformanceTest < Test::Unit::TestCase
     run_cycle('perflua', 'http://localhost:8088/upload/perf-bu', 100)
   end
 
-  def test_num_perf
+#  def test_num_perf
     #51MB
-    run_cycle('perfnum', 'http://localhost:8088/upload/perf-num', 100)
-  end
+#    run_cycle('perfnum', 'http://localhost:8088/upload/perf-num', 100)
+#  end
 
 
   def test_final_perf
@@ -33,15 +33,15 @@ class PerformanceTest < Test::Unit::TestCase
       x.report("bu_crc 51MB * 10") { n.times {
         run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu-crc', 100)
       }}
-      x.report("num    51MB * 10") { n.times {
-         run_cycle('perfnum', 'http://localhost:8088/upload/perf-num', 100)
-      }}
+#      x.report("num    51MB * 10") { n.times {
+#         run_cycle('perfnum', 'http://localhost:8088/upload/perf-num', 100)
+#      }}
       x.report("bu    204MB * 10") {n.times {
          run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu', 400)
       }}
-      x.report("num   204MB * 10") {n.times {
-         run_cycle('perfnum', 'http://localhost:8088/upload/perf-num', 400)
-      }}
+#      x.report("num   204MB * 10") {n.times {
+#         run_cycle('perfnum', 'http://localhost:8088/upload/perf-num', 400)
+#      }}
     end
   end
 

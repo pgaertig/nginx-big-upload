@@ -1,5 +1,4 @@
 #!/bin/bash
-#!/bin/bash
 CDIR=`pwd`
 if [ -f ./nginx ]
 then
@@ -9,5 +8,7 @@ else
 fi
 . ./stop-nginx.sh
 echo "Using $NGINX_BIN"
+$NGINX_BIN -v
 $NGINX_BIN -p $CDIR -c $CDIR/nginx-big-upload-test.conf
 sleep 1
+
