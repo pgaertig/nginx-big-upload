@@ -1,6 +1,7 @@
-Changes with nginx-big-upload 1.1.1                           11 May 2013
+Changes with nginx-big-upload 1.2.0                           27 May 2013
 
-  *) Added working example using HTML5 File API
+  *) Feature: SHA1 calculation
+  *) Improved docs and working example using HTML5 File API
 
 Changes with nginx-big-upload 1.1.0                           24 Apr 2013
 

@@ -207,11 +207,10 @@ is transferred in 100 requests. Times in seconds. Fileds user/system/total are r
     num   204MB * 10  2.480000   3.940000   6.420000 ( 10.818588)  #nginx 1.2.7
 
 ## TODO:
-* SHA1 calculation
+* Uploads without Session-ID and Session-ID extracted from location 
 * storage handler with back-end subrequest before first chunk - e.g. to check if upload is acceptable or to track temporary file
 * upload status requests,
 * back-end-side progress notifications,
-* JavaScript example with HTML5 File API and file chunking with Blob.slice.
 * cloud pass-thru upload handler,
 * multiparts support - this is low priority please use excellent [nginx-upload-module](https://github.com/vkholodkov/nginx-upload-module/tree/2.2) or [lua-resty-upload](https://github.com/agentzh/lua-resty-upload)
 
