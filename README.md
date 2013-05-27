@@ -8,9 +8,9 @@ requests. This extension requires Nginx compiled with Lua, see [Installation](#I
 
 - PUT/POST uploads,
 - Partial chunked and resumable uploads,
-- On the fly resumable CRC32 checksum calculation,
+- On the fly resumable CRC32 checksum calculation (client-side state),
+- On the fly resumable SHA-1
 - `nginx-upload-module` resumable protocol compatibility,
-- Stateless, there are no other files in file-system other than uploaded file.
 
 ## Status and compatibility
 
@@ -75,60 +75,109 @@ If you work with Ubuntu (12.04 Precise Pangolin LTS) follow these steps:
         # The important is to have word `jit`, without it nginx will use base
         # Lua interpreter, check LUAJIT paths.
 
-- Download `nginx-big-upload` files somewhere. Set up `$package_path` variable and `content_by_lua_file` directive to dowload location. Remember that all relative paths are relative to nginx config file.
+- Download `nginx-big-upload` files e.g. into `/opt` directory of your server. Set up `$package_path` variable and `content_by_lua_file` directive to dowload location. Remember that all relative paths are relative to nginx config file.
 
 - Optional: Ruby 2.0 is required to run tests from `test` directory, [RVM](https://rvm.io/rvm/install/) use is recommended.
 
 ## Configuration
 
-### CRC32 checksum
-Checksum of uploaded data can be provided by the client by `X-Checksum` request header. In case
-of chunked upload that may be added in last chunk, because the header is passed to backend if Backend Handler is enabled.
-Moreover Backend Handler puts `checksum` into backend request parameters.
+Below is example configuration in nginx configuration file:
 
-To calculate checksum on server-side `$bu_checksum on;` configuration variable should be set. The server calculates
-the checksum and Backend Handler includes it in the `checksum` param of backend request. If client provides 'X-Checksum'
-then it is compared with server-side checksum. If they do not match a response code 400 is returned and further processing is stopped.
+     set $storage backend_file;
+     set $file_storage_path /tmp;
+     set $backend_url /files/add;
 
-Server-side checksum with chunked upload requires client to pass partial checksums between chunks. This is because
-server-side does not store any information to continue calculation of checksums for entire upload. The client
-should remember the value of `X-Checksum` response header of last chunk and put it into `X-Last-Checksum` request header of next chunk.
+     set $bu_sha1 on;
+     set $bu_checksum on;
 
-Simplified example:
+     set $package_path '/opt/nginx-big-upload/?.lua';
+     content_by_lua_file /opt/nginx-big-upload/big-upload.lua;
+
+### `$storage`
+The available values are `backend_file` and `file`.
+With `file` the uploaded file is saved to disk under `$file_storage_path` directory. Every succesfully uploaded chunk request responds with HTTP code `201 Created`.
+The `backend_file` works same as `file` except successful upload of last chunk invokes the backend specified in `$backend_url`.
+### `$file_storage_path`
+This variable should contain path where uploaded files will be stored. File names same as `X-Session-Id` header value sent by the client. For security the header value can only contain
+alphanumeric characters (0-9,a-z,A-Z). The `X-Session-Id` is also returned in response on every succesful chunk. The response body of each chunk shows exposes current range of file uploaded so far, e.g. `0-4095/1243233`.
+
+### `$backend_url`
+When `$storage` is set to `backend_file`, the requests are handled the same as `file` option with `$file_storage_path`. However after last chunk is successfuly uploaded the backend `$backend_url` is invoked and its response returned to client.
+Remember to declare a backend location with `internal;` nginx directive to prevent external requests. Named locations are not supported with `$backend_url`, e.g. `@rails_app`, but there is simple workaround for it:
+
+    location /files/add {
+     internal;
+     access_log off;
+     content_by_lua 'ngx.exec("@rails_app")';
+    }
+
+With the above example the last chunk's success request processing will be forwarded to `@rails_app` named location.
+
+This variable contains a location which will be invoked when file upload is complete. This is only done when backend handler is enabled by `$storage backend_file;`.
+The request sent to backend will be POST request with url-encoded body params:
+
+* `id` - identifier of file, sent in `X-Session-ID`;
+* `name` - name of file extracted from `Content-disposition` request header;
+* `path` - server-side path to uploaded file;
+* `checksum` - optional CRC32 checksum - see `$bu_checksum` setting;
+* `sha1` - optional SHA-1 hex string - see `$bu_sha1` setting;
+
+### `$bu_sha1 on`
+This variable enables on-the-fly hash calculation of SHA-1 on uploaded content. The result will be returned to client in `X-SHA1` header as hexadecimal string.
+Client can provide `X-SHA` header in request so then server will verify it on the end of each chunk.
+If resumable upload is performed then both headers should contain hash of data uploaded so far and both are compared on the end of each chunk.
+For security reasons SHA-1 context in between chunks is stored on the server in the same path as uploaded file plus additional `.shactx` extension.
+Using client-side state as with CRC32 checksum calculation is not possible.
+
+### `$bu_checksum on` (CRC32)
+This option enables CRC32 calculation on server-side. For single part upload the server will return `X-Checksum` response header with CRC32 hex value (up to 8 characters).
+User can also provide `X-Checksum` header in request then the server will compare checksums after complete upload and fail on mismatch.
+
+When resumable upload is used then the client has to pass CRC32 result of recently uploaded chunk to following chunk using `X-Last-Checksum` request header.
+Thanks to this the client keeps the checksum state between chunks and server can calculate the correct checksum for whole upload.
+
+## Example client-server conversation with resumable upload
+
+    #First chunk:
 
     > PUT /upload
+    > X-Session-Id: 123456789
     > Content-Range: bytes 0-4/10
+    > Content-disposition: attachement; filename=document.txt    #You can use UTF-8 file names
     >
     > Part1
+
     < 201 Created
     < X-Checksum: 3053a846
+    < X-SHA1: 138d033e6d97d507ae613bd0c29b7ed365f19395           #SHA-1 of data uploaded so far
 
-    > PUT /upload
+    #Last chunk:
+
+    > PUT /upload                                                #Next chunk, actually final one
+    > X-Session-Id: 123456789
     > Content-Range: bytes 5-9/10
-    > X-Last-Checksum: 3053a846
+    > Content-Disposition: attachement; filename=document.txt    #Only used after last chunk actually
+    > X-Last-Checksum: 3053a846                                  #Pass checksum of previous chunks to continue CRC32
     >
     > Part2
-    < 201 Created
+
+    #Backend subrequest:
+
+       > PUT /files/add
+       > X-Session-Id: 123456789
+       > Content-Range: bytes 5-9/10
+       > Content-Disposition: attachement; filename=document.txt
+       > X-Last-Checksum: 3053a846
+       >
+       > id=123456789&path=/tmp/uploads/123456789&name=document.txt&checksum=478ac3e5&sha1=988dced4ecae71ee10dd5d8ddb97adb62c537704
+
+    #Response from the backend goes to client, plus these headers
+
+    < 200 OK
     < X-Checksum: 478ac3e5
-
-Client can also provide own `X-Checksum` in upload request then checksums will be matched:
-
-    > PUT /upload
-    > Content-Range: bytes 0-4/10
-    > X-Checksum: 3053a846
-    >
-    > Part1
-    < 201 Created
-    < X-Checksum: 3053a846
-
-    > PUT /upload
-    > Content-Range: bytes 5-9/10
-    > X-Last-Checksum: 3053a846
-    > X-Checksum: 478ac3e5
-    >
-    > Part2
-    < 201 Created
-    < X-Checksum: 478ac3e5
+    < X-SHA1: 988dced4ecae71ee10dd5d8ddb97adb62c537704
+    <
+    < Thanks for document.txt file.
 
 ## Differences with nginx-upload-module
 
@@ -142,7 +191,7 @@ Lua module which gives very short development/test iterations in reload per requ
 * Easy to enhance/fork, Lua modules are easy to develop, it took me 2 days to learn Lua and create first production version.
 * Multi-part POST requests (form uploads) are not supported only RAW file in PUT/POST request; check [lua-resty-upload](https://github.com/agentzh/lua-resty-upload);
 * No upload rate limit setting - only one client can upload a given file so it is better to throttle downloads.
-* `nginx-upload-module` doesn't provide CRC32 calcullation in resumable mode.
+* `nginx-upload-module` doesn't provide CRC32 or SHA1 calculation in resumable mode.
 
 ### Benchmark
 
