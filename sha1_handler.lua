@@ -87,7 +87,6 @@ function handler(storage_path)
     end,
 
     on_body = function (self, ctx, body)
-      ngx.log(ngx.ERR,self.skip_bytes)
       if self.skip_bytes > 0 then
         -- skip overlaping bytes
         if self.skip_bytes > #body then
@@ -99,8 +98,10 @@ function handler(storage_path)
           self.skip_bytes = 0
         end
       end
-      if crypto.SHA1_Update(self.sha1_ctx, body, #body) == 0 then
-        return string.format("SHA1 update failed")
+      if body and #body > 0 then
+        if crypto.SHA1_Update(self.sha1_ctx, body, #body) == 0 then
+          return string.format("SHA1 update failed")
+        end
       end
     end,
 
