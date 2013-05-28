@@ -10,14 +10,7 @@ local table = table
 local io = io
 local assert = assert
 local concat = table.concat
-
-
-
-    function string.tohex(str)
-        return (str:gsub('.', function (c)
-            return string.format('%02x', string.byte(c))
-        end))
-    end
+local util = require('util')
 
 module(...)
 
@@ -117,7 +110,7 @@ function handler(storage_path)
         if crypto.SHA1_Final(md, self.sha1_ctx) == 0 then
           return string.format("SHA1 finalization failed")
         end
-        local hexresult = ffi.string(md, 20):tohex()
+        local hexresult = util.tohex(ffi.string(md, 20))
         if ctx.sha1 then
           -- already provided by client, let's check it
           if ctx.sha1 ~= hexresult then

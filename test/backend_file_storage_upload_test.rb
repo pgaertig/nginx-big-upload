@@ -34,6 +34,26 @@ class BackendFileStorageUploadTest < Test::Unit::TestCase
     assert_equal "testvalue", res.header["X-Test"]  #check header passing
   end
 
+  def test_one_shot_upload_no_session_id
+    req.body = "Part1"
+    res = http.request(req)
+
+    assert_equal "202", res.code
+    assert_match /id=/, res.body
+    session_id = res.header["X-Session-Id"]
+    assert_match /^[a-z0-9]{40}$/, session_id  #check generated session Id
+
+    assert_file_content session_id, 'Part1'
+
+    params = CGI::parse(res.body)           #echoed params in body
+    assert_equal [session_id], params['id']
+    assert_equal ["/tmp/#{session_id}"], params['path']
+    assert_equal ["5"], params['size']
+    assert_false params.has_key? 'name'  #no name
+
+    assert_equal "testvalue", res.header["X-Test"]  #check header passing
+  end
+
   def test_two_parts
     assert_new_file '12347', "Part1Part2" do
       req.body = "Part1"

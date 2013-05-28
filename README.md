@@ -207,7 +207,7 @@ is transferred in 100 requests. Times in seconds. Fileds user/system/total are r
     num   204MB * 10  2.480000   3.940000   6.420000 ( 10.818588)  #nginx 1.2.7
 
 ## TODO:
-* Uploads without Session-ID and Session-ID extracted from location 
+* to describe protocol
 * storage handler with back-end subrequest before first chunk - e.g. to check if upload is acceptable or to track temporary file
 * upload status requests,
 * back-end-side progress notifications,

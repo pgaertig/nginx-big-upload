@@ -21,7 +21,7 @@ module(...)
 local function init_file(self, ctx)
   local file_path = ctx.file_path
   local file
-  if (ctx.range_from > 0) then
+  if not ctx.first_chunk then
     -- file must exist for follow up chunks
     file = io.open(file_path, 'r+')  -- Open file for update (reading and writing).
     if not file then

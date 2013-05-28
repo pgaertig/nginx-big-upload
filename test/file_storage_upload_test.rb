@@ -18,13 +18,48 @@ class FileStorageUploadTest < Test::Unit::TestCase
     @upload_path = "/tmp"
   end
 
-  def test_fails_when_no_session_id
+  def test_generates_session_id_for_one_shot
     req.body = "Part1"
 
     res = http.request(req)
-    assert_equal "412", res.code
-    assert_equal "Session-id header missing", res.body
+    assert_equal "201", res.code
+    assert_equal "0-4/5", res.body
+    assert_match /^[a-z0-9]{40}$/, res.header["X-Session-Id"]  #check generated session Id
   end
+
+  def test_fails_when_no_session_id_for_next_chunk
+    req.body = "Part1"
+    req['content-range'] = 'bytes 0-4/10'
+    res = http.request(req)
+
+    assert_equal "201", res.code
+    assert_equal "0-4/10", res.body
+    session_id = res.header["X-Session-Id"]
+    assert_match /^[a-z0-9]{40}$/, session_id  #check generated session Id
+
+    assert_file_content session_id, 'Part1'
+
+    #part2 goes
+    req.body = "Part2"
+    req['content-range'] = 'bytes 5-9/10'
+    res = http.request(req)
+
+    assert_equal "412", res.code
+    assert_equal "Session-id is required for chunked upload.", res.body
+    assert_nil res.header["X-Session-Id"]  #nothing generated
+
+  end
+
+  def test_generates_session_id_for_first_chunk
+    req.body = "Part1"
+    req['content-range'] = 'bytes 0-4/10'
+
+    res = http.request(req)
+    assert_equal "201", res.code
+    assert_equal "0-4/10", res.body
+    assert_match /^[a-z0-9]{40}$/, res.header["X-Session-Id"]  #check generated session Id
+  end
+
 
   #This is example of single chunk upload
   def test_without_content_range

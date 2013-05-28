@@ -1,4 +1,4 @@
--- Copyrigtht (C) 2013 Piotr Gaertig
+-- Copyright (C) 2013 Piotr Gaertig
 
 local concat = table.concat
 local match = string.match
@@ -10,9 +10,11 @@ local string = string
 local math = math
 local ngx = ngx
 local type = type
-local pairs = pairs
+local ipairs = ipairs
 local crc32 = crc32
 local sha1_handler = sha1_handler
+local io = io
+local util = require('util')
 
 
 module(...)
@@ -38,6 +40,8 @@ local function raw_body_by_chunk(self)
     return chunk
 end
 
+
+
 -- Checks request headers and creates upload context instance
 function new(self, handlers)
     local ctx = {}
@@ -49,16 +53,6 @@ function new(self, handlers)
     end
     if content_length < 0 then
       return nil, {400, "Negative content length"}
-    end
-
-    local session_id = headers["session-id"] or headers["x-session-id"]
-    if not session_id then
-      -- TODO make optional in next version, back-end can assign session-id in url
-      return nil, {412, "Session-id header missing"}
-    else
-      if session_id:match('%W') then
-        return nil, {412, "Session-id is invalid (only alphanumeric value are accepted)"}
-      end
     end
 
     local range_from, range_to, range_total
@@ -80,6 +74,19 @@ function new(self, handlers)
 
     if range_from == 0 then
       ctx.first_chunk = true
+    end
+
+    local session_id = headers["session-id"] or headers["x-session-id"]
+    if not session_id then
+        if not ctx.first_chunk then
+            return nil, {412, "Session-id is required for chunked upload." }
+        else
+            session_id = util.random_sha1()
+        end
+    else
+        if session_id:match('%W') then
+            return nil, {412, "Session-id is invalid (only alphanumeric value are accepted)"}
+        end
     end
 
     ctx.range_from = range_from
@@ -110,6 +117,7 @@ function new(self, handlers)
       return nil, "Configuration error: no handlers defined"
     end
 
+    -- Name can be send with each chunk but it is really needed for the last one.
     ctx.get_name = function()
       local content_disposition = headers['Content-Disposition']
       if type(content_disposition) == "table" then
@@ -127,7 +135,6 @@ function new(self, handlers)
         end
         ngx.log(ngx.WARN, "Couldn't extract file name from Content-Disposition:"..content_disposition)
       end
-      return session_id --default
     end
 
     local last_checksum = headers['X-Last-Checksum'] -- checksum of last server-side chunk
@@ -180,33 +187,35 @@ function new(self, handlers)
     }, mt)
 end
 
+local function prepopulate_response_headers(ctx)
+    ngx.header['X-Session-Id'] = ctx.id
+end
+
 function process(self)
-  for i, h in pairs(self.handlers) do
-    local result = h.on_body_start and h:on_body_start(self.payload_context)
-    if result then
-      -- result from on_body_start means something important happened to stop upload
-      return result
+    prepopulate_response_headers(self.payload_context)
+
+    for i, h in ipairs(self.handlers) do
+      local result = h.on_body_start and h:on_body_start(self.payload_context)
+      if result then return result end  -- something important happened to stop upload
     end
-  end
-  if self.content_length ~= 0 then
-      while true do
-        local chunk, err = raw_body_by_chunk(self)
-        if not chunk then
-          if err then
-            return err
-          end
-          break
-        end
-        for i, h in pairs(self.handlers) do
-          local result = h.on_body and h:on_body(self.payload_context, chunk)
-          if result then return result end
-        end
+
+    -- internally this loop is non-blocking
+    while true do
+      local chunk, err = raw_body_by_chunk(self)
+      if not chunk then
+        if err then return err end
+        break
       end
-  end
-  for i, h in pairs(self.handlers) do
-    local result = h.on_body_end and h:on_body_end(self.payload_context)
-    if result then return result end
-  end
+      for i, h in ipairs(self.handlers) do
+        local result = h.on_body and h:on_body(self.payload_context, chunk)
+        if result then return result end
+      end
+    end
+
+    for i, h in ipairs(self.handlers) do
+      local result = h.on_body_end and h:on_body_end(self.payload_context)
+      if result then return result end
+    end
 end
 
 setmetatable(_M, {

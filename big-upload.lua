@@ -2,16 +2,20 @@
 -- Copyright (C) 2013 Piotr Gaertig
 
 local config = {
-  package_path = ngx.var.package_path,
-  bu_checksum = ('on' ==  ngx.var.bu_checksum),
-  bu_sha1 = ('on' == ngx.var.bu_sha1)
+    package_path = ngx.var.package_path,
+    bu_checksum = ('on' ==  ngx.var.bu_checksum),
+    bu_sha1 = ('on' == ngx.var.bu_sha1)
 }
 
 if config.package_path then
-  package.path = config.package_path .. ";" .. package.path
+    package.path = config.package_path .. ";" .. package.path
 end
+
+local file_storage_handler = require "file_storage_handler"
+local backend_file_storage_handler = require "backend_file_storage_handler"
 local crc32 = require('crc32')
 local sha1= require('sha1_handler')
+
 local function report_result(info)
   if type(info) == "table" then
     if info.response then
@@ -45,14 +49,12 @@ local err
 local handlers = {}
 local storage_handler
 if ngx.var.storage == 'backend_file' then
-  local storage_handler_meta = require "backend_file_storage_handler"
   if not ngx.var.backend_url then
     return report_result("$backend_url is not defined")
   end
-  storage_handler, err = storage_handler_meta:new(ngx.var.file_storage_path, ngx.var.backend_url)
+  storage_handler, err = backend_file_storage_handler:new(ngx.var.file_storage_path, ngx.var.backend_url)
 else
-  local storage_handler_meta = require "file_storage_handler"
-  storage_handler, err = storage_handler_meta:new(ngx.var.file_storage_path)
+  storage_handler, err = file_storage_handler:new(ngx.var.file_storage_path)
 end
 
 
@@ -60,7 +62,7 @@ if config.bu_checksum then
   table.insert(handlers, crc32.handler())
 end
 if config.bu_sha1 then
-  table.insert(handlers, sha1.handler(ngx.var.file_storage_path))
+ table.insert(handlers, sha1.handler(ngx.var.file_storage_path))
 end
 table.insert(handlers, storage_handler)
 
