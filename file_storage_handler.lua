@@ -61,6 +61,10 @@ local function on_body_start(self, ctx)
   return self:init_file(ctx)
 end
 
+local function on_abort(self)
+  self:close_file()
+end
+
 -- writes body data
 local function on_body(self, ctx, body)
   if self.file then

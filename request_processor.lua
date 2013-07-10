@@ -34,7 +34,7 @@ local function raw_body_by_chunk(self)
     self.left = self.left - current_chunk_size
     local chunk, err =  self.socket:receive(current_chunk_size)
     if err then
-        return nil, err
+        return nil, "Socket receive error: "..err
     end
 
     return chunk
@@ -49,10 +49,10 @@ function new(self, handlers)
 
     local content_length = tonumber(headers["content-length"])
     if not content_length then
-      return nil, {412, "Content-Length missing"}
+      return nil, {411, "Content-Length missing"}
     end
     if content_length < 0 then
-      return nil, {400, "Negative content length"}
+      return nil, {411, "Negative content length"}
     end
 
     local range_from, range_to, range_total
@@ -203,7 +203,12 @@ function process(self)
     while true do
       local chunk, err = raw_body_by_chunk(self)
       if not chunk then
-        if err then return err end
+        if err then
+            for i, h in ipairs(self.handlers) do
+                if h.on_abort then h:on_abort() end
+            end
+            return err
+        end
         break
       end
       for i, h in ipairs(self.handlers) do
