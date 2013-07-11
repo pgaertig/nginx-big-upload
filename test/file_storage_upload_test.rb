@@ -92,7 +92,7 @@ class FileStorageUploadTest < Test::Unit::TestCase
       res = http.request(req)
 
       assert_equal "412", res.code
-      assert_equal "Range size does not match Content-Length", res.body
+      assert_equal "Range size does not match Content-Length (109-0/110 vs 11)", res.body
     end
   end
 

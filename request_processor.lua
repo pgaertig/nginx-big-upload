@@ -60,7 +60,7 @@ function new(self, handlers)
     if content_range then
       range_from, range_to, range_total = content_range:match("%s*bytes%s+(%d+)-(%d+)/(%d+)")
       if not (range_from and range_to and range_total) then
-        return nil, {412, "Invalid Content-Range format"}
+        return nil, {412, string.format("Invalid Content-Range format, was: %s", content_range)}
       end
       range_from = tonumber(range_from)
       range_to = tonumber(range_to)
@@ -85,7 +85,7 @@ function new(self, handlers)
         end
     else
         if session_id:match('%W') then
-            return nil, {412, "Session-id is invalid (only alphanumeric value are accepted)"}
+            return nil, {412, string.format("Session-id is invalid only alphanumeric value are accepted, was %s", session_id)}
         end
     end
 
@@ -109,7 +109,7 @@ function new(self, handlers)
 
       --
       if content_length-1 ~= range_to - range_from then
-        return nil, {412, "Range size does not match Content-Length"}
+        return nil, {412, string.format("Range size does not match Content-Length (%d-%d/%d vs %d)", range_to, range_from, range_total, content_length)}
       end
     end
 
