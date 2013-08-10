@@ -9,7 +9,7 @@ requests. This extension requires Nginx compiled with Lua, see [Installation](#I
 - PUT/POST uploads,
 - Partial chunked and resumable uploads,
 - On the fly resumable CRC32 checksum calculation (client-side state),
-- On the fly resumable SHA-1
+- On the fly resumable SHA-1,MD5 (add by yarshure)
 - `nginx-upload-module` resumable protocol compatibility,
 
 ## Status and compatibility
@@ -81,13 +81,14 @@ If you work with Ubuntu (12.04 Precise Pangolin LTS) follow these steps:
 
 ## Configuration
 
-Below is example configuration in nginx configuration file:
+Below is example configuration in nginx configuration file(add support md5 sum by yarshure):
 
      set $storage backend_file;
      set $file_storage_path /tmp;
      set $backend_url /files/add;
 
      set $bu_sha1 on;
+     set $bu_md5 on; 
      set $bu_checksum on;
 
      set $package_path '/opt/nginx-big-upload/?.lua';
