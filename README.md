@@ -43,7 +43,7 @@ If you work with Ubuntu (12.04 Precise Pangolin LTS) follow these steps:
 
         #Create and go to directory for nginx source and compilation task, e.g. ~/mynginx,
         #This will download nginx sources with Ubuntu/Debian package configs
-        sudo apt-get source nginx
+        apt-get source nginx
         sudo apt-get build-dep nginx
 
         #Export LuaJIT paths. Find them with `locate libluajit`
