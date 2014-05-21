@@ -27,7 +27,7 @@ If you work with Ubuntu (12.04 Precise Pangolin LTS) follow these steps:
 
 - Install LuaJIT using official packages or from [LuaJIT source](http://www.lua.org/) which should be up-to-date.
 
-        sudo apt-get install luajit
+        sudo apt-get install luajit libluajit-5.1
 
 - You have to build nginx from sources with Lua module and LuaJIT support. Precompiled nginx packages depend on Lua interpreter instead of faster LuaJIT.
 
