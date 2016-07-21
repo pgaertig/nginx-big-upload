@@ -19,7 +19,12 @@ local util = require('util')
 
 module(...)
 
+
+
+
+
 local mt = { __index = _M }
+
 
 _M.chunk_size = 4096
 _M.socket_timeout = 30000
@@ -44,6 +49,7 @@ end
 
 -- Checks request headers and creates upload context instance
 function new(self, handlers)
+
     local ctx = {}
     local headers = ngx.req.get_headers()
 
@@ -77,15 +83,21 @@ function new(self, handlers)
     end
 
     local session_id = headers["session-id"] or headers["x-session-id"]
+    if ctx.first_chunk and session_id then
+        ngx.log(ngx.ERR, "Client-generated session-id is not permitted.")
+        return nil, {412, "Client-generated session-id is not permitted." }
+    end
     if not session_id then
         if not ctx.first_chunk then
+            ngx.log(ngx.ERR, "Session-id is required for chunked upload.")
             return nil, {412, "Session-id is required for chunked upload." }
         else
             session_id = util.random_sha1()
         end
     else
         if session_id:match('%W') then
-            return nil, {412, string.format("Session-id is invalid only alphanumeric value are accepted, was %s", session_id)}
+            ngx.log(ngx.ERR, string.format("Session-id contains invalid characters. Only alphanumeric value are accepted, was %s", session_id))
+            return nil, {412, "Session-id contains invalid characters." }
         end
     end
 

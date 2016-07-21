@@ -22,14 +22,17 @@
 
 <script>
 
-function doUpload(url, extraParams, sessionID, file, progress, success) {
+function doUpload(url, extraParams, file, progress, success) {
     var chunkSize = 32000,// this is first chunk size, which will be adaptively expanded depending on upload speed
         aborting = false,
         TO = null,
         lastChecksum = null,
         offset = 0,
-        lastChunkTime = 4000; //used for adaptive chunk size recalculation
+        lastChunkTime = 4000, //used for adaptive chunk size recalculation
+        calculateCRCs = true,
+        crcBlockSize = 4096;
     var xhr;
+    var sessionID;
 
     function adjustChunkSize(startTime) {
         var end = new Date().getTime();
@@ -47,6 +50,36 @@ function doUpload(url, extraParams, sessionID, file, progress, success) {
 
         }
     }
+
+	var crc32 = (function() {
+
+		var table = new Uint32Array(256);
+
+		// Pre-generate crc32 polynomial lookup table
+		// http://wiki.osdev.org/CRC32#Building_the_Lookup_Table
+		// ... Actually use Alex's because it generates the correct bit order
+		//     so no need for the reversal function
+		for (var i=256; i--;) {
+			var tmp = i;
+			for(var k=8; k--;)
+			{
+				tmp = tmp & 1 ? 3988292384 ^ tmp >>> 1 : tmp >>> 1;
+			}
+			table[i] = tmp;
+		}
+
+		// crc32b
+		// Example input        : [97, 98, 99, 100, 101] (Uint8Array)
+		// Example output       : 2240272485 (Uint32)
+		return function (data) {
+			var crc = -1; // Begin with all bits set ( 0xffffffff )
+			for(var i=0, l=data.length; i<l; i++) {
+				crc = crc >>> 8 ^ table[ crc & 255 ^ data[i] ];
+			}
+			return (crc ^ -1) >>> 0; // Apply binary NOT
+		};
+
+	})();
 
     var uploadNextChunk = function() {
             TO = null;
@@ -88,6 +121,7 @@ function doUpload(url, extraParams, sessionID, file, progress, success) {
                 }
 
                 if (xhr.readyState >= 4) {
+
                     if (xhr.status === 200) {
                         progress((chunkEnd + 1) / file.size);
 
@@ -95,6 +129,7 @@ function doUpload(url, extraParams, sessionID, file, progress, success) {
                         success(xhr.responseText);
 
                     } else if (xhr.status === 201) {
+	                    sessionID = xhr.getResponseHeader('X-Session-Id');
                         offset = chunkEnd + 1;
                         progress(offset / file.size);
                         adjustChunkSize(chunkStartTime);
@@ -130,13 +165,25 @@ function doUpload(url, extraParams, sessionID, file, progress, success) {
             xhr.setRequestHeader('Content-Type', 'application/octet-stream');
             xhr.setRequestHeader('Content-Disposition', 'attachment; filename="' + encodeURIComponent(file.name) + '"');
             xhr.setRequestHeader('X-Content-Range', 'bytes ' + chunkStart + '-' + chunkEnd + '/' + file.size);
-            xhr.setRequestHeader('X-Session-ID', sessionID);
+            if (sessionID != null) {
+                xhr.setRequestHeader('X-Session-ID', sessionID);
+            }
             if(lastChecksum) {
                 //client must pass the checksum of all previous chunks
                 //this way server will continue checksum calculation
                 xhr.setRequestHeader('X-Last-Checksum', lastChecksum);
             }
-            xhr.send(currentBlob);
+            if (calculateCRCs) {
+				blobToArrayBuffer(currentBlob, function (arrayBuffer) {
+					var byteArray = new Uint8Array(arrayBuffer);
+					var crc = createCRC(byteArray);
+					xhr.setRequestHeader('X-Checksum', crc.toString(16));
+					//console.log('X-Checksum', crc + " " + crc.toString(16));
+					xhr.send(currentBlob);
+				});
+			} else {
+				xhr.send(currentBlob);
+			}
         };
 
     TO = setTimeout(uploadNextChunk, 1);
@@ -161,6 +208,32 @@ function doUpload(url, extraParams, sessionID, file, progress, success) {
             uploadNextChunk();
         }
     };
+
+	function blobToArrayBuffer (blob, callback) {
+		var fileReader     = new FileReader();
+		fileReader.onload  = function() {
+			callback(this.result);
+		};
+		fileReader.readAsArrayBuffer(blob)
+	}
+
+	function createCRC (byteArray) {
+		var crcBlockCount = Math.ceil(byteArray.length / crcBlockSize);
+		var crc = 0;
+		var crcBlockStart = 0;
+		for (var i=0; i<crcBlockCount; i++) {
+			var crcBlockEnd = crcBlockStart + crcBlockSize;
+			if (crcBlockEnd > byteArray.length) {
+				crcBlockEnd = byteArray.length;
+			}
+			var crcBlock = byteArray.subarray(crcBlockStart, crcBlockEnd);
+			crc = crc32(crcBlock);
+			//console.log("crc's: " + i + ": " + crc + " crcBlock.length: " + crcBlock.length);
+			crcBlockStart = crcBlockEnd;
+		}
+		return crc;
+	}
+
 }
 
 
@@ -183,10 +256,7 @@ if (!!((typeof(File) !== 'undefined') && (typeof(Blob) !== 'undefined') && (type
 
         var file = document.getElementById('file-to-upload').files[0];
 
-        //generate random long number for SessionID
-        var sessionID = Math.round(Math.pow(10,17)*Math.random());
-
-        doUpload('/upload', 'test=1', sessionID, file, function(progress) {
+        doUpload('/upload', 'test=1', file, function(progress) {
 
             console.log('Total file progress is ' + Math.floor(progress * 100) + '%');
 
