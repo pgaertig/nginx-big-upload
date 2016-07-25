@@ -35,6 +35,10 @@ end
 -- override
 local function on_body_start(self, ctx)
   local file_path = concat({self.dir, ctx.id}, "/")
+  if ctx.file_name ~= nil then
+    -- use explicitly specified filename..
+    file_path = concat({self.dir, ctx.file_name}, "/")
+  end
   ctx.file_path = file_path
   return self:init_file(ctx)
 end

@@ -82,6 +82,12 @@ function new(self, handlers)
       ctx.first_chunk = true
     end
 
+    -- optionally, verify total file size against breadcrumb left from lua-auth script..
+    if ngx.ctx.file_length ~= range_total then
+        ngx.log(ngx.ERR, string.format("Invalid size. Authorized: [%s], but specified: [%s]", ngx.ctx.file_length, range_total))
+        return nil, {412, string.format("Invalid size. Authorized: [%s], but specified: [%s]", ngx.ctx.file_length, range_total)}
+    end
+
     local session_id = headers["session-id"] or headers["x-session-id"]
     if ctx.first_chunk and session_id then
         ngx.log(ngx.ERR, "Client-generated session-id is not permitted.")
@@ -187,6 +193,11 @@ function new(self, handlers)
     end
 
     ctx.id = session_id
+
+    -- optionally use specified filename from breadcrumb left by lua auth script..
+    if ngx.ctx.file_name ~= nil then
+      ctx.file_name = ngx.ctx.file_name
+    end
 
     return setmetatable({
         socket = socket,
