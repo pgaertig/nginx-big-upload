@@ -10,7 +10,7 @@ local ngx = ngx
 local string = string
 local concat = table.concat
 local error = error
-
+local os = os
 
 module(...)
 
@@ -25,10 +25,20 @@ local function end_backend(self, ctx)
           id = ctx.id,
           path = ctx.file_path,
           name = ctx.get_name(),
+          file_name = ctx.file_name,
           checksum = ctx.checksum,
           sha1 = ctx.sha1
         })
     })
+  end
+end
+
+local function move_file(self, ctx)
+  if ctx.file_path and ctx.success_destination_dir then
+    local ret, err = os.rename(ctx.file_path, concat({ctx.success_destination_dir, ctx.file_name}, "/"))
+    if ret == nil or err ~= nil then
+      return string.format("Failed to move completed file: %s to: %s. Error: %s", ctx.file_path, ctx.success_destination_dir, err)
+    end
   end
 end
 
@@ -46,7 +56,14 @@ end
 -- override
 local function on_body_end(self, ctx)
   self:close_file()
-  -- call backend if finished
+  if ctx.range_to + 1 == ctx.range_total then
+    local ret = move_file(self, ctx)
+    if ret then
+      ngx.log(ngx.ERR, ret)
+      return ngx.ERROR
+    end
+  end
+  -- call backend if finished & move successful
   local res = end_backend(self, ctx)
   return {201, string.format("0-%d/%d", ctx.range_to, ctx.range_total), response = res }
 end

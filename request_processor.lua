@@ -199,6 +199,11 @@ function new(self, handlers)
       ctx.file_name = ngx.ctx.file_name
     end
 
+    -- add optional move-to directory for successfully completed uploads..
+    if ngx.var.success_destination_dir then
+      ctx.success_destination_dir = ngx.var.success_destination_dir
+    end
+
     return setmetatable({
         socket = socket,
         chunk_size = chunk_size,
