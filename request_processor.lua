@@ -199,6 +199,11 @@ function new(self, handlers)
       ctx.file_name = ngx.ctx.file_name
     end
 
+    -- optionally include misc breadcrumbs left by lua auth script..
+    if ngx.ctx.misc ~= nil then
+      ctx.misc = ngx.ctx.misc
+    end
+
     -- add optional move-to directory for successfully completed uploads..
     if ngx.var.success_destination_dir then
       ctx.success_destination_dir = ngx.var.success_destination_dir
