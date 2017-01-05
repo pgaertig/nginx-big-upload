@@ -1,8 +1,8 @@
 #!/bin/bash
 CDIR=`pwd`
-if [ -f ./nginx ]
+if [ -f ../docker/nginx ]
 then
-  NGINX_BIN=./nginx
+  NGINX_BIN=../docker/nginx
 else
   NGINX_BIN=`which nginx`
 fi

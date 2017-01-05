@@ -20,10 +20,22 @@ Tested with:
 - production: v1.0.0 - v1.1.0, nginx-1.2.7 (Ubuntu, Debian), nginx-lua-module v0.7.9
 - tests: v1.1.0, nginx-1.4.1 (Ubuntu, Debian), nginx-lua-module v0.8.0 built-in stock nginx-extras DEB.
 
-## <a id="Installation"></a> Installation
+## <a id="Prebuild nginx"></a> Easy way: Prebuild static Nginx with Docker
+
+The `docker` directory contains scripts which will prebuild Nginx with Lua staticaly. That means `nginx` executable will have absolutely no dependencies other than amd64 Linux compatible system. The only perequisite for build process is Docker (tested with 1.12) on your (local) system. No image or container is created, the Docker is currently utilised only as sandbox to build the Nginx from sources. To run the build invoke the following:
+
+    cd docker
+    ./build_nginx_with_docker.sh
+
+Once successful the newly build `nginx` will be available in `docker` directory and has no dependencies:
+   
+    $ ldd docker/nginx
+	not a dynamic executable
+   
+## <a id="Installation"></a> Harder way: Installation in Ubuntu
 
 This module requires LuaJIT and nginx with [HttpLuaModule](http://wiki.nginx.org/HttpLuaModule) installed in your system.
-If you work with Ubuntu (12.04 Precise Pangolin LTS) follow these steps:
+If you work with Ubuntu (12.04 Precise Pangolin LTS or higher) follow these steps:
 
 - Install LuaJIT using official packages or from [LuaJIT source](http://www.lua.org/) which should be up-to-date.
 
