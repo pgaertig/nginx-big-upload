@@ -2,21 +2,20 @@
 
 -- CRC32 checksum
 
-local ffi = require('ffi')
 local tonumber = tonumber
 local string = string
 local ngx = ngx
 local table = table
 
+
+local zlib = require ('zlib')
+
 module(...)
 
-local zlib = ffi.load('z')
-ffi.cdef[[
-    unsigned long crc32(unsigned long crc, const char *buf, unsigned len );
-]]
 
 function crc32(data, lastnum)
-  return tonumber(zlib.crc32(lastnum, data, #data))
+  return zlib.crc32()(data, lastnum)
+  -- return zlib.crc32()(lastnum, data, #data)
 end
 
 function validhex(crchex) return #crchex <= 8 and string.match(crchex, "^%x+$") end
@@ -32,6 +31,7 @@ function handler()
   return {
     on_body_start = function (self, ctx)
       ctx.current_checksum = ctx.last_checksum and tonumber(ctx.last_checksum, 16) or ( ctx.first_chunk and 0 )
+
       -- stop checksum processing if X-Last-Checksum is not present for non first chunk
       if not ctx.current_checksum then
         self.on_body = nil
@@ -40,12 +40,13 @@ function handler()
     end,
 
     on_body = function (self, ctx, body)
-      ctx.current_checksum = crc32(body, ctx.current_checksum)
+        ctx.current_checksum = crc32(body, ctx.current_checksum)
     end,
 
     on_body_end = function (self, ctx)
       if ctx.checksum then
         if tonumber(ctx.checksum,16) ~= ctx.current_checksum then
+          ngx.log(ngx.ERR, string.format("Chunk checksum mismatch client=[%s] server=[%s]", ctx.checksum, tohex(ctx.current_checksum)))
           return {400, string.format("Chunk checksum mismatch client=[%s] server=[%s]", ctx.checksum, tohex(ctx.current_checksum))}
         end
       else
