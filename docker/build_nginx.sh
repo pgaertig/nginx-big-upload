@@ -1,4 +1,7 @@
 #!/bin/bash
+
+if [ -z "$DOCKER" ]; then echo "This script is intended to be run within Docker container" ; fi
+
 set -ex
 
 # Versions:
@@ -55,6 +58,9 @@ export LUAJIT_INC=/usr/local/include/luajit-${LUAJIT_MAJOR_VERSION}
 
 # Nginx - build and install
 cd nginx-${NGINX_VERSION}
+
+#export CFLAGS="-g -O0"
+
 ./configure \
   --prefix=${NGINX_INSTALL_PATH} \
   --sbin-path=/usr/sbin/nginx \
@@ -88,7 +94,8 @@ cd nginx-${NGINX_VERSION}
   --without-http_browser_module \
   --without-mail_pop3_module \
   --without-mail_imap_module \
-  --without-mail_smtp_module 
+  --without-mail_smtp_module \
+#  --with-debug
 
 sed -i "/CFLAGS/s/ \-O //g" objs/Makefile
 
