@@ -11,6 +11,7 @@ requests. This extension requires Nginx compiled with Lua, see [Installation](#I
 - On the fly resumable CRC32 checksum calculation (client-side state),
 - On the fly resumable SHA-1
 - `nginx-upload-module` resumable protocol compatibility,
+- HTTP/2 not yet supported (limitation of nginx/lua module)
 
 ## Status and compatibility
 
@@ -31,6 +32,11 @@ Once successful the newly build `nginx` will be available in `docker` directory 
    
     $ ldd docker/nginx
 	not a dynamic executable
+
+To successfuly run the upload module scripts you need just these two dependencies installed in your system:
+
+ - libcrypto.so version 1.0.2 (Debian/Ubuntu package: `libssl1.0-dev`)
+ - libz.so (Debian/Ubuntu package: `zlib1g-dev`)     
    
 ## <a id="Installation"></a> Harder way: Installation in Ubuntu
 
@@ -224,7 +230,6 @@ is transferred in 100 requests. Times in seconds. Fileds user/system/total are r
 * upload status requests,
 * back-end-side progress notifications,
 * cloud pass-thru upload handler,
-* multiparts support - this is low priority please use excellent [nginx-upload-module](https://github.com/vkholodkov/nginx-upload-module/tree/2.2) or [lua-resty-upload](https://github.com/agentzh/lua-resty-upload)
 
 
 

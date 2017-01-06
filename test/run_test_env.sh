@@ -22,6 +22,7 @@ ln -sf /dev/stderr /var/log/nginx/error.log
 
 ./start-nginx.sh
 
+gem install net-http2 --no-ri --no-rdoc --version=0.14.1
 ruby test_suite.rb
 
 
