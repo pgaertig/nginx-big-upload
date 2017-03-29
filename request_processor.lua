@@ -108,9 +108,9 @@ function new(self, handlers)
       end
 
       --
-      if content_length-1 ~= range_to - range_from then
-        return nil, {412, string.format("Range size does not match Content-Length (%d-%d/%d vs %d)", range_to, range_from, range_total, content_length)}
-      end
+      -- if content_length-1 ~= range_to - range_from then
+      --    return nil, {412, string.format("Range size does not match Content-Length (%d-%d/%d vs %d)", range_to, range_from, range_total, content_length)}
+      -- end
     end
 
     if not handlers or #handlers == 0 then
