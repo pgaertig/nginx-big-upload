@@ -7,13 +7,12 @@ set -ex
 # Versions:
 
 export \
-  NGINX_VERSION=1.11.7 \
-  OPENSSL_VERSION=1.0.2j \
-  LUAJIT_VERSION=2.1.0-beta2 \
+  NGINX_VERSION=1.13.4 \
+  OPENSSL_VERSION=1.0.2l \
+  LUAJIT_VERSION=2.1.0-beta3 \
   LUAJIT_MAJOR_VERSION=2.1 \
   NGINX_DEVEL_KIT_VERSION=0.3.0 \
-  LUA_NGINX_MODULE_VERSION=0.10.7 \
-  NGINX_INSTALL_PATH=/opt/nginx \
+  LUA_NGINX_MODULE_VERSION=0.10.10 \
   UPLOAD_PROGRESS_MODULE_VERSION=master
 
 
@@ -62,7 +61,6 @@ cd nginx-${NGINX_VERSION}
 #export CFLAGS="-g -O0"
 
 ./configure \
-  --prefix=${NGINX_INSTALL_PATH} \
   --sbin-path=/usr/sbin/nginx \
   --conf-path=/etc/nginx/nginx.conf \
   --http-log-path=/var/log/nginx/access.log --error-log-path=/var/log/nginx/error.log \
@@ -77,6 +75,7 @@ cd nginx-${NGINX_VERSION}
   --with-http_realip_module \
   --with-http_stub_status_module \
   --with-file-aio \
+  --with-threads \
   --with-ld-opt="-static" \
   --with-openssl-opt=no-krb5 \
   --with-openssl=$OPENSSL_PATH \
@@ -102,22 +101,12 @@ sed -i "/CFLAGS/s/ \-O //g" objs/Makefile
 make -j4
 make install
 
-# Extract built nginx outside the container with proper ownership (default root)
-cp objs/nginx /mnt/
-chown ${UID:-0}:${GID:-0} /mnt/nginx
+if [ ! -z "$TARGET_DIR" ]; then
+  # Extract built nginx outside the container with proper ownership (default root)
+  cp objs/nginx ${TARGET_DIR}/
+  chown ${TARGET_UID:-0}:${TARGET_GID:-0} ${TARGET_DIR}/nginx
+fi
 
-exit 0
-# TODO BELOW MAKES USE IN CONTAINER ONLY
-
-# Logs forwarded to the console:
-
-mkdir -p /var/log/nginx
-ln -sf /dev/stdout /var/log/nginx/access.log
-ln -sf /dev/stderr /var/log/nginx/error.log
-
-# Cleanup:
-
-apt-get -qq remove -y --auto-remove curl build-essential libpcre++-dev zlib1g-dev git
-rm -rf /src /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/doc-base /usr/share/man /usr/share/locale /usr/share/zoneinfo /usr/src
-
+# Purge build deps
+apt-get -qq purge -y --auto-remove curl build-essential libpcre++-dev git
 

@@ -15,8 +15,9 @@ class Http2Test < Test::Unit::TestCase
   # Hopefully someday this test will fail
   def test_httpv2_not_supported
     assert @http2
-    assert_raise HTTP2::Error::ProtocolError do
+#    assert_raise HTTP2::Error::ProtocolError do
       res = @http2.call(:put, @path, { body: "Part1", headers: { 'session-id' => '12345' }})
-    end
+      assert !res.ok?
+#    end
   end
 end
