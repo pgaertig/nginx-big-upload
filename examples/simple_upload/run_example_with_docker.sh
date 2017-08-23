@@ -7,5 +7,8 @@ docker run --rm -it \
  -v ${SCRIPTDIR}/nginx.conf:/etc/nginx/nginx.conf \
  -v ${SCRIPTDIR}/index.html:/var/www/index.html \
  --net host \
- -e DOCKER=1 pgaertig/nginx-big-upload:latest
+ -e DOCKER=1 \
+ -e ACCESS_LOG_STDOUT=1 \
+ -e ERROR_LOG_STDERR=1 \
+ pgaertig/nginx-big-upload:latest
 
