@@ -37,22 +37,28 @@ You can try the image locally for development or test with `simple_upload` and `
 
 To use this module first you need to copy the the project into some directory, e.g.
     
-    git clone https://github.com/pgaertig/nginx-big-upload.git /opt/nginx-big-upload
+    git clone -b v1.2.2 https://github.com/pgaertig/nginx-big-upload.git /opt/nginx-big-upload
+    
+Please check the available git tags to pin to the latest project version. The master branch may have breaking changes introduced in the future.      
     
 **Important:** Nginx worker process user or group needs read-only access rights to all lua files in`/opt/nginx-big-upload/lib/` directory. The user and group of nginx worker proces is defined by [user](http://nginx.org/en/docs/ngx_core_module.html#user) directive.
     
 Below is example upload configuration in nginx configuration file. There is more examples in `examples/simple_upload/nginx.conf` and `test/nginx-big-upload-test.conf`. 
 
-    location = /upload {
-      set $storage backend_file;
-      set $file_storage_path /tmp;
-      set $backend_url /files/add;
-
-      set $bu_sha1 on;
-      set $bu_checksum on;
-
-      set $package_path '/opt/nginx-big-upload/lib/?.lua';
-      content_by_lua_file /opt/nginx-big-upload/big-upload.lua;
+    lua_package_path "/opt/nginx-big-upload/lib/?.lua;;"; 
+    server {  
+    ...
+        location = /upload {
+          set $storage backend_file;
+          set $file_storage_path /tmp;
+          set $backend_url /files/add;
+    
+          set $bu_sha1 on;
+          set $bu_checksum on;
+    
+          content_by_lua_file /opt/nginx-big-upload/big-upload.lua;
+        }
+    ....
     }
 
 ### set $storage backend_file | file;
