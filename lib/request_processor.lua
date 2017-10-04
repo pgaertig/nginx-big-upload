@@ -145,7 +145,7 @@ function new(self, handlers)
       ctx.last_checksum = last_checksum
     end
 
-    local checksum = headers['X-Checksum'] -- checksum from beginning of file up to current chunk
+    local checksum = headers['X-Checksum'] -- checksum from beginning of file to current chunk inclusive
     if checksum then
       if not crc32.validhex(checksum) then
         return nil, {400, "Bad X-Checksum format: " .. checksum}
