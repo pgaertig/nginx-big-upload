@@ -14,37 +14,47 @@ class PerformanceTest
     puts "--- Unit tests successful, now starting performance test..."
 
     #Warmup
-    run_cycle('perflua', 'http://localhost:8088/upload/perf-bu', 20, @body512k)
-    run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu-crc', 20, @body512k)
-    run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu-sha1', 20, @body512k)
+    run_cycle('perfwrm1', 'http://localhost:8088/upload/perf-bu', 20, @body512k)
+    run_cycle('perfwrm2', 'http://localhost:8088/upload/perf-bu-crc', 20, @body512k)
+    run_cycle('perfwrm3', 'http://localhost:8088/upload/perf-bu-crc-server', 20, @body512k)
+    run_cycle('perfwrm4', 'http://localhost:8088/upload/perf-bu-sha1', 20, @body512k)
+    run_cycle('perfwrm5', 'http://localhost:8088/upload/perf-bu-full', 20, @body512k)
 
     puts "Legend: [total], [files]x[chunks]x[chunk size], [options] (real time)"
 
     report("524MB, 10x100x512K") { 10.times {
-       run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu', 100, @body512k)
+       run_cycle('perfbu1', 'http://localhost:8088/upload/perf-bu', 100, @body512k)
     }}
 
     report("524MB, 10x100x512K, CRC32") { 10.times {
-      run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu-crc', 100, @body512k)
+      run_cycle('perfbu2', 'http://localhost:8088/upload/perf-bu-crc', 100, @body512k)
+    }}
+
+    report("524MB, 10x100x512K, CRC32s") { 10.times {
+      run_cycle('perfbu3', 'http://localhost:8088/upload/perf-bu-crc-server', 100, @body512k)
     }}
 
     report("524MB, 10x100x512K, SHA1") { 10.times {
-      run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu-sha1', 100, @body512k)
+      run_cycle('perfbu4', 'http://localhost:8088/upload/perf-bu-sha1', 100, @body512k)
+    }}
+
+    report("524MB, 10x100x512K, SHA1, CRC32s") { 10.times {
+      run_cycle('perfbu5', 'http://localhost:8088/upload/perf-bu-full', 100, @body512k)
     }}
 
     report("  2GB, 10x400x512K") {10.times {
-       run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu', 400, @body512k)
+       run_cycle('perfbu6', 'http://localhost:8088/upload/perf-bu', 400, @body512k)
     }}
 
     report("  1GB, 10x50x2MB") { 10.times {
-      run_cycle('perfbu', 'http://localhost:8088/upload/perf-bu', 50, @body2mb)
+      run_cycle('perfbu7', 'http://localhost:8088/upload/perf-bu', 50, @body2mb)
     }}
 
     puts "--- End of performance test ---"
   end
 
   def report label, &block
-    printf " * %-30s", label
+    printf " * %-35s", label
     printf "(%.3fs)\n", Benchmark.realtime(&block)
   end
 
@@ -74,6 +84,10 @@ class PerformanceTest
     File.exists?(file) || raise("Uploaded file does not exists: #{file}")
     total_size == File.size(file) || raise("Uploaded size differs: #{total_size} vs #{File.size(file)}")
     1 == File.delete(file) || raise("Can't delete file: #{file}")
+    crcfile = file + '.crc32'
+    shafile = file + '.shactx'
+    File.exists?(crcfile) && File.delete(crcfile)
+    File.exists?(shafile) && File.delete(shafile)
   end
 
 

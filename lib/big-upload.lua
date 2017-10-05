@@ -3,7 +3,7 @@
 
 local config = {
     package_path = ngx.var.package_path,
-    bu_checksum = ('on' ==  ngx.var.bu_checksum),
+    bu_checksum = ('off' ~=  ngx.var.bu_checksum),
     bu_sha1 = ('on' == ngx.var.bu_sha1)
 }
 
@@ -59,7 +59,12 @@ end
 
 
 if config.bu_checksum then
-  table.insert(handlers, crc32.handler())
+  if ngx.var.bu_checksum == 'server' then
+    local crc32_server = require('crc32_server')
+    table.insert(handlers, crc32_server.handler(ngx.var.file_storage_path))
+  else
+    table.insert(handlers, crc32.handler())
+  end
 end
 if config.bu_sha1 then
  table.insert(handlers, sha1.handler(ngx.var.file_storage_path))

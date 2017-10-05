@@ -6,8 +6,8 @@ Reliable RAW PUT/POST uploads and easy to extend Lua logic of file upload lifecy
 
 - PUT/POST RAW uploads;
 - Partial chunked and resumable uploads;
-- On the fly resumable CRC32 checksum calculation (client-side state);
-- On the fly resumable SHA-1;
+- On the fly resumable CRC32 checksum calculation with client-side or server-side state;
+- On the fly resumable SHA-1 with server-side state;
 - [nginx-upload-module](https://github.com/vkholodkov/nginx-upload-module/tree/2.2) resumable protocol compatibility;
 - Easy to enhance/fork with Lua and fast asynchronous Lua module API;
 - Unlimited file size, tested with 1TB files;
@@ -101,8 +101,8 @@ If resumable upload is performed then both headers should contain hash of data u
 For security reasons SHA-1 context in between chunks is stored on the server in the same path as uploaded file plus additional `.shactx` extension.
 Using client-side state as with CRC32 checksum calculation is not possible.
 
-### set $bu_checksum on|off
-This option enables CRC32 calculation and validation on server-side with state saved on client side in case of chunked upload.
+### set $bu_checksum on|server|off
+This option enables CRC32 calculation. If `on` turns on validation on server-side with state saved on client side in case of chunked upload. The value `server` turns on validation and state saved on server-side only. State files are stored in the same place where uploaded files but with `.crc32` suffix.
 
 #### CRC32 Verification
 
@@ -110,11 +110,11 @@ The server returns `X-Checksum` header for entire content already uploaded whate
 
 #### Resumable CRC32 state
 
-The server is not storing the state of CRC32 calculation when chunked upload is performed
-therefore the client needs to keep that state. For every chunk except the first one
-the client should pass the vale of previous chunk's response header `X-Checksum` as request header `X-Last-Checksum`. See example conversation in following sections or scripts in `test/` directory.
+In case of `$bu_checksum on` the server is not storing the state of CRC32 calculation when chunked upload is performed.
+In such case the client needs to keep that state. For every chunk except the first one
+the client should pass the value of previous chunk's response header `X-Checksum` as request header `X-Last-Checksum`. See example conversation in following sections or scripts in `test/` directory.
 
-## Example client-server conversation with resumable upload
+## Example client-server conversation with resumable upload and client-side CRC32 state
 
     #First chunk:
 
