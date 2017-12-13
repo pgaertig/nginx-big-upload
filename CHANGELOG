@@ -1,3 +1,6 @@
+Changes with nginx-big-upload 1.4.0                           13 Dec 2017
+  *) Fix: restrict session-id regex to explicit ASCII alphanum characters and hypen.
+
 Changes with nginx-big-upload 1.3.0                            4 Oct 2017
   *) Server-side CRC32 state (sponsored by FEX.NET)
 

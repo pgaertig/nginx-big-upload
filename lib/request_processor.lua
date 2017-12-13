@@ -84,8 +84,8 @@ function new(self, handlers)
             session_id = util.random_sha1()
         end
     else
-        if session_id:match('%W') then
-            return nil, {412, string.format("Session-id is invalid only alphanumeric value are accepted, was %s", session_id)}
+        if not session_id:match('^[a-zA-Z0-9-]+$') then
+            return nil, {412, string.format("Session-id is invalid, only ASCII alphanumeric characters or hypen are accepted, was %s", session_id)}
         end
     end
 

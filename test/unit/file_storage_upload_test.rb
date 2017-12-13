@@ -60,6 +60,37 @@ class FileStorageUploadTest < Test::Unit::TestCase
     assert_match /^[a-z0-9]{40}$/, res.header["X-Session-Id"]  #check generated session Id
   end
 
+  def test_valid_session_ids
+    req.body = "Part1"
+
+    req['session-id'] = 'abcd'
+    res = http.request(req)
+    assert_equal '201', res.code
+
+    req['session-id'] = 'AXZ123'
+    res = http.request(req)
+    assert_equal '201', res.code
+
+    req['session-id'] = 'a0a718bc-5bf7-470d-bb78-452310a484dc'
+    res = http.request(req)
+    assert_equal '201', res.code
+  end
+
+  def test_invalid_session_ids
+    req.body = "Part1"
+
+    req['session-id'] = '../../badactor'
+    res = http.request(req)
+    assert_equal ["412", "Session-id is invalid, only ASCII alphanumeric characters or hypen are accepted, was ../../badactor"], [res.code, res.body]
+
+    req['session-id'] = 'abc\\def'
+    res = http.request(req)
+    assert_equal ["412", "Session-id is invalid, only ASCII alphanumeric characters or hypen are accepted, was abc\\def"], [res.code, res.body]
+
+    req['session-id'] = 'µπśð'
+    res = http.request(req)
+    assert_equal ["412", 'Session-id is invalid, only ASCII alphanumeric characters or hypen are accepted, was µπśð'], [res.code, res.body.force_encoding("utf-8")]
+  end
 
   #This is example of single chunk upload
   def test_without_content_range
