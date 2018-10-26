@@ -1,3 +1,6 @@
+Changes with nginx-big-upload 1.4.1                           26 Oct 2018
+  *) Upgrade nginx to 1.15.5 with supporting libraries
+
 Changes with nginx-big-upload 1.4.0                           13 Dec 2017
   *) Fix: restrict session-id regex to explicit ASCII alphanum characters and hypen.
 
