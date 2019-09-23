@@ -11,13 +11,12 @@ local math = math
 local ngx = ngx
 local type = type
 local ipairs = ipairs
-local crc32 = crc32
-local sha1_handler = sha1_handler
+local crc32 = require('crc32')
+local sha1_handler = require('sha1_handler')
 local io = io
 local util = require('util')
 
-
-module(...)
+local _M = {}
 
 local mt = { __index = _M }
 
@@ -40,10 +39,8 @@ local function raw_body_by_chunk(self)
     return chunk
 end
 
-
-
 -- Checks request headers and creates upload context instance
-function new(self, handlers)
+function _M.new(self, handlers)
     local ctx = {}
     local headers = ngx.req.get_headers()
 
@@ -191,7 +188,7 @@ local function prepopulate_response_headers(ctx)
     ngx.header['X-Session-Id'] = ctx.id
 end
 
-function process(self)
+function _M.process(self)
     prepopulate_response_headers(self.payload_context)
 
     for i, h in ipairs(self.handlers) do
@@ -232,3 +229,4 @@ setmetatable(_M, {
   end,
 })
 
+return _M

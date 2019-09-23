@@ -8,27 +8,25 @@ local string = string
 local ngx = ngx
 local table = table
 
-module(...)
-
 local zlib = ffi.load('z')
 ffi.cdef[[
     unsigned long crc32(unsigned long crc, const char *buf, unsigned len );
 ]]
 
-function crc32(data, lastnum)
+local function crc32(data, lastnum)
   return tonumber(zlib.crc32(lastnum, data, #data))
 end
 
-function validhex(crchex) return #crchex <= 8 and string.match(crchex, "^%x+$") end
-function tohex(crcnum) return string.format("%08.8x", crcnum) end
+local function validhex(crchex) return #crchex <= 8 and string.match(crchex, "^%x+$") end
+local function tohex(crcnum) return string.format("%08.8x", crcnum) end
 
-function crc32hex(data, last)
+local function crc32hex(data, last)
   local lastnum = last and tonumber(last, 16) or 0
   local currnum = crc32(data,lastnum)
   return tohex(tonumber(currnum))
 end
 
-function handler()
+local function handler()
   return {
     on_body_start = function (self, ctx)
       ctx.current_checksum = ctx.last_checksum and tonumber(ctx.last_checksum, 16) or ( ctx.first_chunk and 0 )
@@ -55,3 +53,11 @@ function handler()
     end
   }
 end
+
+return {
+  handler = handler,
+  crc32 = crc32,
+  validhex = validhex,
+  tohex = tohex,
+  crc32hex = crc32hex
+}

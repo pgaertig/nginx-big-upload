@@ -12,9 +12,7 @@ local assert = assert
 local concat = table.concat
 local util = require('util')
 
-module(...)
-
-function validhex(sha1hex) return #sha1hex <= 40 and string.match(sha1hex, "^%x+$") end
+local function validhex(sha1hex) return #sha1hex <= 40 and string.match(sha1hex, "^%x+$") end
 
 local crypto = ffi.load('crypto')
 
@@ -59,8 +57,7 @@ local function shactx_from_file(file_path)
   return
 end
 
-
-function handler(storage_path)
+local function handler(storage_path)
   return {
 
     on_body_start = function (self, ctx)
@@ -124,3 +121,8 @@ function handler(storage_path)
     end
   }
 end
+
+return {
+  handler = handler,
+  validhex = validhex
+}

@@ -5,7 +5,6 @@
 -- after successfully submitting last chunk of file. Then the backend should look for file named as
 -- Session-ID in the upload directory.
 
-
 local setmetatable = setmetatable
 local concat = table.concat
 local io = io
@@ -13,10 +12,9 @@ local string = string
 local error = error
 local ngx = ngx
 
-module(...)
+local _M = {}
 
 -- local mt = { __index = _M }
-
 
 local function init_file(self, ctx)
   local file_path = ctx.file_path
@@ -78,7 +76,6 @@ local function on_body_end(self, ctx)
   return {201, string.format("0-%d/%d", ctx.range_to, ctx.range_total) }
 end
 
-
 function _M:new(dir)
     return setmetatable({
        dir = dir or '/tmp',
@@ -95,7 +92,6 @@ function _M:new(dir)
     }, _M)
 end
 
-
 setmetatable(_M, {
   __newindex = function (_, n)
     error("attempt to write to undeclared variable "..n, 2)
@@ -104,3 +100,5 @@ setmetatable(_M, {
     error("attempt to read undeclared variable "..n, 2)
   end,
 })
+
+return _M
