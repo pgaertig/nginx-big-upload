@@ -20,7 +20,7 @@ local function report_result(info)
   if type(info) == "table" then
     if info.response then
       -- response from backends
-      res = info.response
+      local res = info.response
       ngx.status = res.status
       for k, v in pairs(res.header) do
         ngx.header[k] = v
