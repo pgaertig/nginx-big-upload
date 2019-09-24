@@ -20,7 +20,7 @@ contain setup scripts for various use cases. Docker is not required as it is use
  
  - Nginx 1.x with Lua support enabled,
  - LuaJIT,
- - Shared library: libcrypto.so version 1.0.2 for SHA1 calculation
+ - Shared library: libcrypto.so version 1.0.2 for SHA1 and SHA256 calculation
  - Shared library: libz.so (Zlib) needed for CRC32 calculation
 
 ### Docker image
@@ -99,6 +99,13 @@ This variable enables on-the-fly hash calculation of SHA-1 on uploaded content. 
 Client can provide `X-SHA1` header in request so then server will verify it on the end of each chunk.
 If resumable upload is performed then both headers should contain hash of data uploaded so far and both are compared on the end of each chunk.
 For security reasons SHA-1 context in between chunks is stored on the server in the same path as uploaded file plus additional `.shactx` extension.
+Using client-side state as with CRC32 checksum calculation is not possible.
+
+### set $bu_sha256 on | off
+This variable enables on-the-fly hash calculation of SHA-256 on uploaded content. The result will be returned to client in `X-SHA256` header as hexadecimal string.
+Client can provide `X-SHA256` header in request so then server will verify it on the end of each chunk.
+If resumable upload is performed then both headers should contain hash of data uploaded so far and both are compared on the end of each chunk.
+For security reasons SHA-256 context in between chunks is stored on the server in the same path as uploaded file plus additional `.sha256ctx` extension.
 Using client-side state as with CRC32 checksum calculation is not possible.
 
 ### set $bu_checksum on|server|off

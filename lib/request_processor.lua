@@ -13,6 +13,7 @@ local type = type
 local ipairs = ipairs
 local crc32 = require('crc32')
 local sha1_handler = require('sha1_handler')
+local sha256_handler = require('sha256_handler')
 local io = io
 local util = require('util')
 
@@ -158,6 +159,13 @@ function _M.new(self, handlers)
       ctx.sha1 = xsha1
     end
 
+    local xsha256 = headers['X-SHA256'] -- checksum from beginning of file up to current chunk
+    if xsha256 then
+      if not sha256_handler.validhex(xsha256) then
+        return nil, {400, "Bad X-SHA256 format: " .. xsha256}
+      end
+      ctx.sha256 = xsha256
+    end
 
     local socket
 
