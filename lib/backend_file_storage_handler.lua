@@ -11,8 +11,7 @@ local string = string
 local concat = table.concat
 local error = error
 
-
-module(...)
+local _M = {}
 
 local function end_backend(self, ctx)
   -- last chunk commited?
@@ -47,7 +46,6 @@ local function on_body_end(self, ctx)
   return {201, string.format("0-%d/%d", ctx.range_to, ctx.range_total), response = res }
 end
 
-
 function _M:new(dir, backend)
     if not backend then
       return nil, "Configuration error: no backend specified"
@@ -61,7 +59,6 @@ function _M:new(dir, backend)
     return setmetatable(inst, { __index = function(t,k) return t.super[k] end} )
 end
 
-
 setmetatable(_M, {
   __newindex = function (_, n)
     error("attempt to write to undeclared variable "..n, 2)
@@ -70,3 +67,5 @@ setmetatable(_M, {
     error("attempt to read undeclared variable "..n, 2)
   end,
 })
+
+return _M

@@ -12,8 +12,6 @@ local concat = table.concat
 local util = require('util')
 local crc32 = require('crc32')
 
-module(...)
-
 local function crc32h_to_file(file_path, hex_checksum, offset)
   local out = assert(io.open(file_path .. '.crc32', "wb"))
   out:write(offset)
@@ -33,8 +31,7 @@ local function crc32_from_file(file_path)
   return
 end
 
-
-function handler(storage_path)
+local function handler(storage_path)
   return {
     on_body_start = function(self, ctx)
       self.skip_bytes = 0
@@ -83,3 +80,7 @@ function handler(storage_path)
     end
   }
 end
+
+return {
+  handler = handler
+}
