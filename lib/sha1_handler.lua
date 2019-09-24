@@ -32,10 +32,6 @@ ffi.cdef[[
   int SHA1_Final(unsigned char *md, SHA_CTX *shactx);
 ]]
 
-local function shactx_from_file(path)
-
-end
-
 local function shactx_to_file(file_path, shactx, offset)
   local out = assert(io.open(file_path..'.shactx', "wb"))
   local binctx = ffi.string(shactx, 96)

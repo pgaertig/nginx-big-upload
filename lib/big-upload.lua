@@ -4,7 +4,8 @@
 local config = {
     package_path = ngx.var.package_path,
     bu_checksum = ('off' ~=  ngx.var.bu_checksum),
-    bu_sha1 = ('on' == ngx.var.bu_sha1)
+    bu_sha1 = ('on' == ngx.var.bu_sha1),
+    bu_sha256 = ('on' == ngx.var.bu_sha256)
 }
 
 if config.package_path then
@@ -15,6 +16,7 @@ local file_storage_handler = require "file_storage_handler"
 local backend_file_storage_handler = require "backend_file_storage_handler"
 local crc32 = require('crc32')
 local sha1= require('sha1_handler')
+local sha256 = require('sha256_handler')
 
 local function report_result(info)
   if type(info) == "table" then
@@ -68,6 +70,9 @@ if config.bu_checksum then
 end
 if config.bu_sha1 then
  table.insert(handlers, sha1.handler(ngx.var.file_storage_path))
+end
+if config.bu_sha256 then
+ table.insert(handlers, sha256.handler(ngx.var.file_storage_path))
 end
 table.insert(handlers, storage_handler)
 
