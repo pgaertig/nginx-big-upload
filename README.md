@@ -54,6 +54,7 @@ Below is example upload configuration in nginx configuration file. There is more
           set $backend_url /files/add;
     
           set $bu_sha1 on;
+          set $bu_sha256 on;
           set $bu_checksum on;
     
           content_by_lua_file /opt/nginx-big-upload/big-upload.lua;
@@ -80,6 +81,7 @@ The request sent to backend will be POST request with url-encoded body params:
 * `path` - server-side path to uploaded file;
 * `checksum` - optional CRC32 checksum - see `$bu_checksum` setting;
 * `sha1` - optional SHA-1 hex string - see `$bu_sha1` setting;
+* `sha256` - optional SHA-256 hex string -see `$bu_sha256` setting;
 
 The `url` value should refer to location recognized in nginx configuration. Outbound absolute HTTP/HTTPS URLs were not tested yet. Remember to declare a backend location with `internal;` nginx directive to prevent external access to the backend endpoint.
  
