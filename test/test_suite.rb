@@ -16,7 +16,10 @@ tests.each do |file|
   require(file)
 end
 
-if Test::Unit::AutoRunner.run
+if Test::Unit::AutoRunner.run or abort("Unit tests: failed. Performance tests: skipped.")
   require(relative_path("performance/performance_test.rb"))
-  PerformanceTest.new.run
+  PerformanceTest.new.run or abort("Unit tests: successful. Performance tests: failed.")
+  puts("Unit tests: successful. Performance tests: successful.")
 end
+
+# exit code 0 when successful or 1 when abort

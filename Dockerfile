@@ -1,4 +1,4 @@
-FROM debian:stretch-slim
+FROM debian:buster-slim
 
 # Build nginx
 ADD ./docker/build_nginx.sh /tmp

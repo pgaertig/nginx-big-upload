@@ -51,6 +51,7 @@ class PerformanceTest
     }}
 
     puts "--- End of performance test ---"
+    true
   end
 
   def report label, &block

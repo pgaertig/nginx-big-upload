@@ -1,5 +1,7 @@
 # nginx-big-upload
 
+[![Build Status](https://travis-ci.org/pgaertig/nginx-big-upload.svg?branch=master)](https://travis-ci.org/pgaertig/nginx-big-upload)
+
 Reliable RAW PUT/POST uploads and easy to extend Lua logic of file upload lifecycle.
 
 ## Features
@@ -7,7 +9,7 @@ Reliable RAW PUT/POST uploads and easy to extend Lua logic of file upload lifecy
 - PUT/POST RAW uploads;
 - Partial chunked and resumable uploads;
 - On the fly resumable CRC32 checksum calculation with client-side or server-side state;
-- On the fly resumable SHA-1 with server-side state;
+- On the fly resumable SHA-1 & SHA-256 with server-side state;
 - [nginx-upload-module](https://github.com/vkholodkov/nginx-upload-module/tree/2.2) resumable protocol compatibility;
 - Easy to enhance/fork with Lua and fast asynchronous Lua module API;
 - Unlimited file size, tested with 1TB files;

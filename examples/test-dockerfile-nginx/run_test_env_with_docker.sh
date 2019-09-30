@@ -3,6 +3,6 @@
 SCRIPTDIR=$(dirname "$(readlink -f "$0")")
 docker run --rm -it \
  -v ${SCRIPTDIR}/../..:/opt/nginx-big-upload \
- -e DOCKER=1 pgaertig/nginx-big-upload:latest \
+ -e DOCKER=1 -e RUN_ONCE pgaertig/nginx-big-upload:latest \
  /opt/nginx-big-upload/test/run_test_env.sh
 
