@@ -17,8 +17,9 @@ echoerr() { printf "%(%FT%TZ)T %s\n" -1 "$*" >&2; }
 nginx -t -g 'daemon off;' || ( echoerr "Nginx configuration test failed" && exit 1 )
 
 #Run nginx graceful autoreload check in background
-[[ $AUTORELOAD ]] && (
-    sleep 1
+if [[ $AUTORELOAD ]]
+then
+(sleep 1
     [[ "$AUTORELOAD_CHECK_METHOD" = "timestamp" ]] && CHECK_METHOD='timestamp' || CHECK_METHOD='checksum'
 
     echoerr "Autoreload: Waiting for ${AUTORELOAD_CHECK_FILE:=/etc/nginx/nginx.conf} changes to autoreload nginx." \
@@ -44,6 +45,7 @@ nginx -t -g 'daemon off;' || ( echoerr "Nginx configuration test failed" && exit
         nginx -t && nginx -s reload
       fi
     done
-) &
+ ) &
+fi
 
 exec nginx -g 'daemon off;'
