@@ -61,7 +61,7 @@ class PerformanceTest
 
   def run_cycle(id, uri, chunks_no, chunk_data)
     file = "/tmp/#{id}"
-    File.delete(file) if File.exists?(file)
+    File.delete(file) if File.exist?(file)
     req = Net::HTTP::Post.new uri
     req.body = chunk_data
     req['content-type'] = 'application/octet-stream'
@@ -82,13 +82,13 @@ class PerformanceTest
       offset += chunk_size
     end
 
-    File.exists?(file) || raise("Uploaded file does not exists: #{file}")
+    File.exist?(file) || raise("Uploaded file does not exists: #{file}")
     total_size == File.size(file) || raise("Uploaded size differs: #{total_size} vs #{File.size(file)}")
     1 == File.delete(file) || raise("Can't delete file: #{file}")
     crcfile = file + '.crc32'
     shafile = file + '.shactx'
-    File.exists?(crcfile) && File.delete(crcfile)
-    File.exists?(shafile) && File.delete(shafile)
+    File.exist?(crcfile) && File.delete(crcfile)
+    File.exist?(shafile) && File.delete(shafile)
   end
 
 

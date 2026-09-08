@@ -8,8 +8,8 @@ class Test::Unit::TestCase
   def assert_new_file(id, content, &block)
     assert_not_empty id
     file = File.join @upload_path, id
-    File.delete file if File.exists? file
-    assert ! File.exists?(file)
+    File.delete file if File.exist? file
+    assert ! File.exist?(file)
     yield
     assert_file_content(id, content)
     File.delete file
@@ -18,7 +18,7 @@ class Test::Unit::TestCase
   def assert_file_content(id, content)
     assert_not_empty id
     file = File.join @upload_path, id
-    assert File.exists?(file)
+    assert File.exist?(file)
     fcontent = File.read(file)
     assert_not_nil fcontent
     assert_equal content, fcontent
@@ -27,9 +27,9 @@ class Test::Unit::TestCase
   def assert_no_file(id, &block)
     assert_not_empty id
     file = File.join @upload_path, id
-    File.delete file if File.exists? file
-    assert ! File.exists?(file)
+    File.delete file if File.exist? file
+    assert ! File.exist?(file)
     yield
-    assert ! File.exists?(file)
+    assert ! File.exist?(file)
   end
 end

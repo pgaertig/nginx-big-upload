@@ -26,16 +26,19 @@ ffi.cdef[[
 	    unsigned int Nl,Nh;
 	    unsigned int data[16];
 	    unsigned int num, md_len;
-  } SHA256_CTX; //112 bytes
+  } SHA256_CTX;
 
   int SHA256_Init(SHA256_CTX *shactx);
   int SHA256_Update(SHA256_CTX *shactx, const void *data, unsigned long len);
   int SHA256_Final(unsigned char *md, SHA256_CTX *shactx);
 ]]
 
+local SHA256_CTX_SIZE = ffi.sizeof("SHA256_CTX")
+assert(SHA256_CTX_SIZE == 112, "unexpected SHA256_CTX size " .. SHA256_CTX_SIZE .. ", expected 112")
+
 local function shactx_to_file(file_path, shactx, offset)
   local out = assert(io.open(file_path..'.sha256ctx', "wb"))
-  local binctx = ffi.string(shactx, 112)
+  local binctx = ffi.string(shactx, SHA256_CTX_SIZE)
   out:write(offset)
   out:write("\n")
   out:write(binctx)
@@ -45,11 +48,12 @@ end
 local function shactx_from_file(file_path)
   local inp = io.open(file_path..'.sha256ctx', "rb")
   if inp then
-    file_size = tonumber(inp:read("*line"))
-    file_data = inp:read("*all")
+    local file_size = tonumber(inp:read("*line"))
+    local file_data = inp:read("*all")
     assert(inp:close())
-    -- ffi.copy(file_data, shactx, 112)
-    return file_size, ffi.cast("SHA256_CTX*", file_data)
+    local shactx = ffi.new("SHA256_CTX")
+    ffi.copy(shactx, file_data, SHA256_CTX_SIZE)
+    return file_size, shactx
   end
   return
 end

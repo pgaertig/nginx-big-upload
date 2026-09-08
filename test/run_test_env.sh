@@ -12,16 +12,22 @@ TEST_DIR=/opt/nginx-big-upload/test
 $NGINX_BIN -V
 
 # Logs forwarded to the console:
+mkdir -p /var/log/nginx
 #ln -sf /dev/stdout /var/log/nginx/access.log
 ln -sf /dev/stderr /var/log/nginx/error.log
-
-$NGINX_BIN -t -c $TEST_DIR/nginx-big-upload-test.conf
 
 export DEBIAN_FRONTEND=noninteractive
 export TERM=xterm
 apt-get -qqy update
-apt-get -qqy install --no-install-recommends ruby
-gem install net-http2 --no-ri --no-rdoc --version=0.15.0
+apt-get -qqy install --no-install-recommends ruby curl openssl
+
+# The HTTP/3 vhost self-signed certs
+if [ ! -f /tmp/nbu-test-cert.pem ]; then
+  openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj /CN=localhost \
+    -keyout /tmp/nbu-test-key.pem -out /tmp/nbu-test-cert.pem
+fi
+
+$NGINX_BIN -t -c $TEST_DIR/nginx-big-upload-test.conf
 
 . /etc/profile
 . /root/.profile

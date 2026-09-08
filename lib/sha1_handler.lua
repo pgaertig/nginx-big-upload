@@ -16,7 +16,7 @@ local function validhex(sha1hex) return #sha1hex <= 40 and string.match(sha1hex,
 
 local crypto = ffi.load('crypto')
 
--- extracted from https://github.com/openssl/openssl/blob/master/crypto/sha/sha.h
+-- extracted from https://github.com/openssl/openssl/blob/master/include/openssl/sha.h
 ffi.cdef[[
 
   typedef struct SHAstate_st
@@ -25,16 +25,19 @@ ffi.cdef[[
 	    unsigned int Nl,Nh;
 	    unsigned int data[16];
 	    unsigned int num;
-  } SHA_CTX; //96 bytes
+  } SHA_CTX;
 
   int SHA1_Init(SHA_CTX *shactx);
   int SHA1_Update(SHA_CTX *shactx, const void *data, unsigned long len);
   int SHA1_Final(unsigned char *md, SHA_CTX *shactx);
 ]]
 
+local SHA_CTX_SIZE = ffi.sizeof("SHA_CTX")
+assert(SHA_CTX_SIZE == 96, "unexpected SHA_CTX size " .. SHA_CTX_SIZE .. ", expected 96")
+
 local function shactx_to_file(file_path, shactx, offset)
   local out = assert(io.open(file_path..'.shactx', "wb"))
-  local binctx = ffi.string(shactx, 96)
+  local binctx = ffi.string(shactx, SHA_CTX_SIZE)
   out:write(offset)
   out:write("\n")
   out:write(binctx)
@@ -44,11 +47,12 @@ end
 local function shactx_from_file(file_path)
   local inp = io.open(file_path..'.shactx', "rb")
   if inp then
-    file_size = tonumber(inp:read("*line"))
-    file_data = inp:read("*all")
+    local file_size = tonumber(inp:read("*line"))
+    local file_data = inp:read("*all")
     assert(inp:close())
-    -- ffi.copy(file_data, shactx, 96)
-    return file_size, ffi.cast("SHA_CTX*", file_data)
+    local shactx = ffi.new("SHA_CTX")
+    ffi.copy(shactx, file_data, SHA_CTX_SIZE)
+    return file_size, shactx
   end
   return
 end

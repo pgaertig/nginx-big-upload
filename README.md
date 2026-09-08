@@ -1,6 +1,6 @@
 # nginx-big-upload
 
-[![Build Status](https://travis-ci.org/pgaertig/nginx-big-upload.svg?branch=master)](https://travis-ci.org/pgaertig/nginx-big-upload)
+[![CI](https://github.com/pgaertig/nginx-big-upload/actions/workflows/ci.yml/badge.svg)](https://github.com/pgaertig/nginx-big-upload/actions/workflows/ci.yml)
 
 Reliable RAW PUT/POST uploads and easy to extend Lua logic of file upload lifecycle.
 
@@ -17,17 +17,20 @@ Reliable RAW PUT/POST uploads and easy to extend Lua logic of file upload lifecy
 
 ## Runtime prerequisites
 
-The following perquisites Above are available as standard packages in Debian 8+ and Ubuntu 16.04+, please see `examples/test-*/` directories which
+The following perquisites Above are available as standard packages in Debian 13+ and Ubuntu 26.04+, please see `examples/test-*/` directories which
 contain setup scripts for various use cases. Docker is not required as it is used to isolate test environments.
  
- - Nginx 1.x with Lua support enabled,
- - LuaJIT,
- - Shared library: libcrypto.so version 1.0.2 for SHA1 and SHA256 calculation
- - Shared library: libz.so (Zlib) needed for CRC32 calculation
+ - Nginx 1.x with Lua support enabled (`nginx-extras` plus `libnginx-mod-http-lua` on Debian and Ubuntu),
+ - LuaJIT, OpenResty's fork is recommended,
+ - Shared library: libcrypto.so, OpenSSL 1.1 or 3.x, for SHA1 and SHA256 calculation.
+ - Shared library: libz.so (Zlib) needed for CRC32 calculation, from the `zlib1g-dev` package
+
+Note that `lua-resty-core` and `lua-resty-lrucache` are mandatory dependencies of lua-nginx-module
+since its version 0.10.16. Nginx refuses to start without them.
 
 ### Docker image
 
-This module is also available as Docker image bundled with statically compiled Nginx with LuaJIT and configuration autoreload.
+This module is also available as Docker image bundled with Nginx, LuaJIT and configuration autoreload.
 It has also [mod_zip](https://github.com/evanmiller/mod_zip) 3rd party module compiled in. *mod_zip* can generate on-the-fly ZIP archives from uploaded files. The interesting feature of *mod_zip* is that
 it can resume ZIP downloads once CRC32 of each archive file is provided by a backend. See more details on mod_zip's README.
 

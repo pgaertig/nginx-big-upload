@@ -1,3 +1,7 @@
+Changes with nginx-big-upload 1.5.0                            8 Sep 2026
+  *) Upgrade docker image to Debian 13 trixie, nginx 1.31.5, LuaJIT 2.1-20260415 (OpenResty fork)
+  *) Fix bug
+
 Changes with nginx-big-upload 1.4.1                           26 Oct 2018
   *) Upgrade nginx to 1.15.5 with supporting libraries
 
