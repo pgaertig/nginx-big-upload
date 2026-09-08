@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOCKER_TTY: " "
+  RUN_ONCE: "1"
+
+jobs:
+  lint:
+    name: Lua static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install luacheck
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends lua-check
+
+      - name: luacheck
+        run: luacheck lib/
+
+  image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t nginx-big-upload:ci .
+
+      - name: Report what was built
+        run: docker run --rm nginx-big-upload:ci nginx -V
+
+      - name: Unit and performance suite
+        run: ./examples/test-dockerfile-nginx/run_test_env_with_docker.sh
+        env:
+          NBU_IMAGE: nginx-big-upload:ci
+
+      - name: mod_zip memory stress, issue 108
+        run: |
+          docker run --rm -e DOCKER=1 -e MODZIP_FILE_COUNT \
+            -v "$PWD:/opt/nginx-big-upload" \
+            nginx-big-upload:ci /opt/nginx-big-upload/test/run_modzip_memory_test.sh
+        env:
+          MODZIP_FILE_COUNT: "10000"
+
+  distro:
+    name: Distribution nginx
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [ test-debian-nginx-extras, test-ubuntu-nginx-extras ]
+    steps:
+      - uses: actions/checkout@v4
+
+      # Confirm Lua code also keeps working on the nginx and lua-nginx-module a distribution ships
+      - name: Suite against ${{ matrix.example }}
+        run: ./examples/${{ matrix.example }}/run_test_with_docker.sh

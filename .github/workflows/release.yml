@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Tag to build and publish, for example v1.5.0'
+        required: true
+
+env:
+  DOCKER_TTY: " "
+  RUN_ONCE: "1"
+  IMAGE: pgaertig/nginx-big-upload
+
+jobs:
+  publish:
+    name: Build, test and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        run: echo "value=${{ inputs.version || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      # Cheap guard against tagging a release the CHANGELOG does not describe.
+      - name: CHANGELOG describes this version
+        run: |
+          expected="${{ steps.version.outputs.value }}"
+          expected="${expected#v}"
+          if ! head -1 CHANGELOG | grep -q "nginx-big-upload ${expected}[[:space:]]"; then
+            echo "Top CHANGELOG entry does not mention ${expected}:"
+            head -1 CHANGELOG
+            exit 1
+          fi
+
+      - name: Build the image
+        run: docker build -t "${IMAGE}:candidate" .
+
+      - name: Report what was built
+        run: docker run --rm "${IMAGE}:candidate" nginx -V
+
+      - name: Test the candidate
+        run: ./examples/test-dockerfile-nginx/run_test_env_with_docker.sh
+        env:
+          NBU_IMAGE: ${{ env.IMAGE }}:candidate
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push the version tag and latest
+        run: |
+          version="${{ steps.version.outputs.value }}"
+          docker tag "${IMAGE}:candidate" "${IMAGE}:${version}"
+          docker tag "${IMAGE}:candidate" "${IMAGE}:latest"
+          docker push "${IMAGE}:${version}"
+          docker push "${IMAGE}:latest"
+          echo "Published ${IMAGE}:${version} and ${IMAGE}:latest" >> "$GITHUB_STEP_SUMMARY"
