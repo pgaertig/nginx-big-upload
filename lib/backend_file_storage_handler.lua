@@ -5,6 +5,7 @@
 -- In case of file end the result from backend call is always returned.
 
 local file_storage_handler = require "file_storage_handler"
+local assert = assert
 local setmetatable = setmetatable
 local ngx = ngx
 local string = string
@@ -41,7 +42,7 @@ end
 
 -- override
 local function on_body_end(self, ctx)
-  self:close_file()
+  assert(self:close_file())
   -- call backend if finished
   local res = end_backend(self, ctx)
   return {201, string.format("0-%d/%d", ctx.range_to, ctx.range_total), response = res }

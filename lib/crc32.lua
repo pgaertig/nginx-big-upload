@@ -6,7 +6,6 @@ local ffi = require('ffi')
 local tonumber = tonumber
 local string = string
 local ngx = ngx
-local table = table
 
 local zlib = ffi.load('z')
 ffi.cdef[[

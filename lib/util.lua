@@ -1,3 +1,4 @@
+local assert = assert
 local string = string
 local io = io
 
@@ -10,9 +11,10 @@ end
 
 -- This is random string generator generating SHA1 compatible strings
 local function random_sha1()
-    local ur = io.open("/dev/urandom", "r")
+    local ur = assert(io.open("/dev/urandom", "r"))
     local random_bin = ur:read(20)  -- loads 160 bits
     ur:close()
+    assert(random_bin and #random_bin == 20, "Short read from /dev/urandom")
     return tohex(random_bin)  -- returns 40 hexadecimal characters
 end
 

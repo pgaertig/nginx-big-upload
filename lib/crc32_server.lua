@@ -9,7 +9,6 @@ local table = table
 local io = io
 local assert = assert
 local concat = table.concat
-local util = require('util')
 local crc32 = require('crc32')
 
 local function crc32h_to_file(file_path, hex_checksum, offset)
@@ -40,6 +39,8 @@ local function handler(storage_path)
         self.current_checksum = 0
       else
         self.real_size, self.current_checksum = crc32_from_file(self.file_path)
+        assert(self.real_size and self.current_checksum, string.format(
+          "No CRC32 state saved for %s.crc32, the upload cannot be resumed", self.file_path))
 
         --overlapping chunk upload, need to skip repeated data
         self.skip_bytes = self.real_size - ctx.range_from

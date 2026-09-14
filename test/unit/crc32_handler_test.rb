@@ -2,6 +2,7 @@
 
 require './test_helper'
 require 'cgi'
+require 'zlib'
 
 # Test and examples of crc32 usage, provided by client side and server side.
 
@@ -158,5 +159,45 @@ class Crc32HandlerTest < Test::Unit::TestCase
     assert_equal ["478ac3e5"], params['checksum']
   end
 
+
+
+  DATA = 'Part1Part2Part3Part4Part5Part6Part7Part8'  #40 bytes
+
+  def crc(upto)
+    '%08x' % Zlib.crc32(DATA[0, upto])
+  end
+
+  def test_crc32_overlapping_after_chunk_size_drop
+    sid = '12381'
+
+    res = put DATA[0, 10], 'Session-Id' => sid, 'X-Last-Checksum' => '0',
+              'Content-Range' => 'bytes 0-9/40'
+    assert_equal "201", res.code
+    assert_equal crc(10), res.header["X-Checksum"]
+
+    #A larger chunk lands but its response is lost, so the client still holds the checksum of 10 bytes
+    res = put DATA[10, 20], 'Session-Id' => sid, 'X-Last-Checksum' => crc(10),
+              'Content-Range' => 'bytes 10-29/40'
+    assert_equal "201", res.code
+    assert_equal crc(30), res.header["X-Checksum"]
+
+    #Retry from 10 with a smaller chunk: 30 bytes stored, the chain is back at 10
+    res = put DATA[10, 5], 'Session-Id' => sid, 'X-Last-Checksum' => crc(10),
+              'Content-Range' => 'bytes 10-14/40'
+    assert_equal "201", res.code
+    assert_equal crc(15), res.header["X-Checksum"]
+
+    res = put DATA[15, 15], 'Session-Id' => sid, 'X-Last-Checksum' => crc(15),
+              'Content-Range' => 'bytes 15-29/40'
+    assert_equal "201", res.code
+    assert_equal crc(30), res.header["X-Checksum"]
+
+    res = put DATA[30, 10], 'Session-Id' => sid, 'X-Last-Checksum' => crc(30),
+              'Content-Range' => 'bytes 30-39/40'
+    assert_equal "202", res.code
+    assert_equal [crc(40)], CGI::parse(res.body)['checksum']
+
+    assert_file_content sid, DATA
+  end
 
 end

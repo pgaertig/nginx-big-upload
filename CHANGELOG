@@ -1,3 +1,7 @@
+Changes with nginx-big-upload 1.6.0                           15 Sep 2026
+  *) Feature: $bu_chunk_size (default 65535), socket timeout from nginx lua_socket_read_timeout
+  *) Hardening: close file on aborted upload, fail on I/O errors and corrupt checksum state, luacheck cleanup
+
 Changes with nginx-big-upload 1.5.0                            8 Sep 2026
   *) Upgrade docker image to Debian 13 trixie, nginx 1.31.5, LuaJIT 2.1-20260415 (OpenResty fork)
   *) Fix bug

@@ -21,10 +21,10 @@ ffi.cdef[[
 
   typedef struct SHAstate_st
   {
-    	unsigned int h0,h1,h2,h3,h4;
-	    unsigned int Nl,Nh;
-	    unsigned int data[16];
-	    unsigned int num;
+    unsigned int h0,h1,h2,h3,h4;
+    unsigned int Nl,Nh;
+    unsigned int data[16];
+    unsigned int num;
   } SHA_CTX;
 
   int SHA1_Init(SHA_CTX *shactx);
@@ -50,6 +50,10 @@ local function shactx_from_file(file_path)
     local file_size = tonumber(inp:read("*line"))
     local file_data = inp:read("*all")
     assert(inp:close())
+    assert(file_size, string.format("Missing offset in %s.shactx", file_path))
+    assert(#file_data == SHA_CTX_SIZE,
+      string.format("Corrupt %s.shactx, holds %d bytes of context, expected %d",
+                    file_path, #file_data, SHA_CTX_SIZE))
     local shactx = ffi.new("SHA_CTX")
     ffi.copy(shactx, file_data, SHA_CTX_SIZE)
     return file_size, shactx
@@ -66,6 +70,8 @@ local function handler(storage_path)
       if not ctx.first_chunk then
         local file_path = concat({storage_path, ctx.id}, "/")  -- file based backends not initialized yet
         self.real_size, self.sha1_ctx = shactx_from_file(file_path)
+        assert(self.real_size, string.format(
+          "No SHA-1 state saved for %s, the upload cannot be resumed", file_path))
 
         --overlapping chunk upload, need to skip repeated data
         self.skip_bytes = self.real_size - ctx.range_from

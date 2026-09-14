@@ -273,4 +273,40 @@ class FileStorageUploadTest < Test::Unit::TestCase
       assert_equal "0-35007/35008", res.body
     end
   end
+
+  def test_overlapping_chunk_after_chunk_size_drop
+    data = 'Part1Part2Part3Part4Part5Part6Part7Part8'  #40 bytes
+
+    assert_new_file 'overlap40', data do
+      req['x-session-id'] = 'overlap40'
+
+      req.body = data[0, 20]
+      req['x-content-range'] = 'bytes 0-19/40'
+      res = http.request(req)
+      assert_equal "201", res.code
+      assert_equal "0-19/40", res.body
+
+      #The file keeps 20 bytes
+      req.body = data[10, 5]
+      req['x-content-range'] = 'bytes 10-14/40'
+      res = http.request(req)
+      assert_equal "201", res.code
+      assert_equal "0-14/40", res.body #chunks status in response body
+      assert_file_content 'overlap40', data[0, 20]
+
+      #File grows to 30
+      req.body = data[15, 15]
+      req['x-content-range'] = 'bytes 15-29/40'
+      res = http.request(req)
+      assert_equal "201", res.code
+      assert_file_content 'overlap40', data[0, 30]
+
+      req.body = data[30, 10]
+      req['x-content-range'] = 'bytes 30-39/40'
+      res = http.request(req)
+      assert_equal "201", res.code
+      assert_equal "0-39/40", res.body
+    end
+  end
+
 end

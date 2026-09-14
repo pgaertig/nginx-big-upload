@@ -1,4 +1,8 @@
-function dump(o, level)
+local pairs = pairs
+local tostring = tostring
+local type = type
+
+local function dump(o, level)
   if not level then
     level = 5
   end
@@ -16,3 +20,5 @@ function dump(o, level)
     return tostring(o)
   end
 end
+
+return { dump = dump }

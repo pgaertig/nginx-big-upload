@@ -42,7 +42,7 @@ You can try the image locally for development or test with `simple_upload` and `
 
 To use this module first you need to copy the the project into some directory, e.g.
     
-    git clone -b v1.2.2 https://github.com/pgaertig/nginx-big-upload.git /opt/nginx-big-upload
+    git clone https://github.com/pgaertig/nginx-big-upload.git /opt/nginx-big-upload
     
 Please check the available git tags to pin to the latest project version. The master branch may have breaking changes introduced in the future.      
     
@@ -61,6 +61,9 @@ Below is example upload configuration in nginx configuration file. There is more
           set $bu_sha1 on;
           set $bu_sha256 on;
           set $bu_checksum on;
+
+          # max idle time between two reads of request body, default 60s
+          lua_socket_read_timeout 30s;
     
           content_by_lua_file /opt/nginx-big-upload/big-upload.lua;
         }
@@ -127,6 +130,9 @@ The server returns `X-Checksum` header for entire content already uploaded whate
 In case of `$bu_checksum on` the server is not storing the state of CRC32 calculation when chunked upload is performed.
 In such case the client needs to keep that state. For every chunk except the first one
 the client should pass the value of previous chunk's response header `X-Checksum` as request header `X-Last-Checksum`. See example conversation in following sections or scripts in `test/` directory.
+
+### set $bu_chunk_size *bytes*
+Size in bytes of a single read from the request body socket. Each read is passed to all handlers (checksums, storage), so it also sets how much data is written to disk at once. It is not related to the size of chunks sent by the client. Default is `65535`. The value must be a positive integer.
 
 ## Example client-server conversation with resumable upload and client-side CRC32 state
 

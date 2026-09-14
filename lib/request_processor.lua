@@ -1,11 +1,10 @@
 -- Copyright (C) 2013 Piotr Gaertig
 
 local concat = table.concat
-local match = string.match
 local setmetatable = setmetatable
 local tonumber = tonumber
+local tostring = tostring
 local error = error
-local print = print
 local string = string
 local math = math
 local ngx = ngx
@@ -14,23 +13,21 @@ local ipairs = ipairs
 local crc32 = require('crc32')
 local sha1_handler = require('sha1_handler')
 local sha256_handler = require('sha256_handler')
-local io = io
 local util = require('util')
 
 local _M = {}
 
 local mt = { __index = _M }
 
-_M.chunk_size = 4096
-_M.socket_timeout = 30000
+local DEFAULT_CHUNK_SIZE = 65535
 
 local function raw_body_by_chunk(self)
     if self.left == 0 then
        return nil
     end
 
-    local current_chunk_size = self.left < self.chunk_size and self.left or self.chunk_size
-    -- local current_chunk_size = math.min(self.left,self.chunk_size)
+    local chunk_size = self.chunk_size
+    local current_chunk_size = self.left < chunk_size and self.left or chunk_size
     self.left = self.left - current_chunk_size
     local chunk, err =  self.socket:receive(current_chunk_size)
     if err then
@@ -41,8 +38,14 @@ local function raw_body_by_chunk(self)
 end
 
 -- Checks request headers and creates upload context instance
-function _M.new(self, handlers)
+function _M.new(self, handlers, chunk_size)
     local ctx = {}
+
+    if chunk_size == nil then
+      chunk_size = DEFAULT_CHUNK_SIZE
+    elseif type(chunk_size) ~= "number" or chunk_size < 1 or chunk_size % 1 ~= 0 then
+      return nil, string.format("Configuration error: $bu_chunk_size must be a positive integer, was %s", tostring(chunk_size))
+    end
     local headers = ngx.req.get_headers()
 
     local content_length = tonumber(headers["content-length"])
@@ -175,7 +178,6 @@ function _M.new(self, handlers)
        if not sk then
          return nil, {500, err, concat({"Socket error: ", err})}
        end
-       sk:settimeout(socket_timeout)
        socket = sk
     end
 

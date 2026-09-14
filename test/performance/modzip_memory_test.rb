@@ -47,7 +47,7 @@ class ModzipMemoryTest
     write_manifests
 
     measure('without CRC-32 (the condition reported in #108)', 'manifest-nocrc.txt')
-    measure('with CRC-32 (what KurierPlikow sends)', 'manifest-crc.txt')
+    measure('with CRC-32 in manifest', 'manifest-crc.txt')
 
     cleanup unless ENV['MODZIP_KEEP']
     report

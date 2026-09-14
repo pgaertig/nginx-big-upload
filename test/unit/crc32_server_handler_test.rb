@@ -2,6 +2,7 @@
 
 require './test_helper'
 require 'cgi'
+require 'zlib'
 
 # Test and examples of crc32 server side state usage, provided by client side and server side.
 
@@ -126,6 +127,65 @@ class Crc32ServerHandlerTest < Test::Unit::TestCase
 
     assert_equal "400", res.code
     assert_equal "Chunk checksum mismatch client=[66666666] server=[478ac3e5]", res.body
+  end
+
+
+  DATA = 'Part1Part2Part3Part4Part5Part6Part7Part8'  #40 bytes, five per "PartN"
+
+  def crc(upto)
+    '%08x' % Zlib.crc32(DATA[0, upto])
+  end
+
+  #The client lost the response to a large chunk and came back with a smaller one, which happens
+  #whenever a timeout drops the adaptive chunk size. Server-side state is authoritative in this
+  #mode, so bytes it has already counted must be skipped instead of folded in a second time.
+  def test_crc32_overlapping_after_chunk_size_drop
+    sid = '12371'
+
+    res = put DATA[0, 20], 'Session-Id' => sid, 'Content-Range' => 'bytes 0-19/40'
+    assert_equal "201", res.code
+    assert_equal crc(20), res.header["X-Checksum"]
+
+    #Retry lying entirely inside what the server holds: nothing to add, so nothing is reported
+    res = put DATA[10, 5], 'Session-Id' => sid, 'Content-Range' => 'bytes 10-14/40'
+    assert_equal "201", res.code
+    assert_nil res.header["X-Checksum"]
+
+    #Retry ending exactly on the boundary: state is rewritten, the value does not move
+    res = put DATA[15, 5], 'Session-Id' => sid, 'Content-Range' => 'bytes 15-19/40'
+    assert_equal "201", res.code
+    assert_equal crc(20), res.header["X-Checksum"]
+
+    #The chunk size ramps up again and straddles the boundary: only bytes 20-29 are counted
+    res = put DATA[15, 15], 'Session-Id' => sid, 'Content-Range' => 'bytes 15-29/40'
+    assert_equal "201", res.code
+    assert_equal crc(30), res.header["X-Checksum"]
+
+    res = put DATA[30, 10], 'Session-Id' => sid, 'Content-Range' => 'bytes 30-39/40'
+    assert_equal "202", res.code
+    assert_equal [crc(40)], CGI::parse(res.body)['checksum']
+
+    assert_file_content sid, DATA
+  end
+
+  #The response to the last chunk was lost, so the client sends that chunk again. The whole of it is
+  #then an overlap and the checksum must come out unchanged rather than doubled.
+  def test_crc32_repeated_last_chunk
+    sid = '12372'
+
+    res = put DATA[0, 30], 'Session-Id' => sid, 'Content-Range' => 'bytes 0-29/40'
+    assert_equal "201", res.code
+    assert_equal crc(30), res.header["X-Checksum"]
+
+    res = put DATA[30, 10], 'Session-Id' => sid, 'Content-Range' => 'bytes 30-39/40'
+    assert_equal "202", res.code
+    assert_equal [crc(40)], CGI::parse(res.body)['checksum']
+
+    res = put DATA[30, 10], 'Session-Id' => sid, 'Content-Range' => 'bytes 30-39/40'
+    assert_equal "202", res.code
+    assert_equal [crc(40)], CGI::parse(res.body)['checksum']
+
+    assert_file_content sid, DATA
   end
 
 end

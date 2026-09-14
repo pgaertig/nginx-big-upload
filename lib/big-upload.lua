@@ -1,11 +1,17 @@
 -- Main nginx-big-upload file which is specified in nginx config files.
 -- Copyright (C) 2013 Piotr Gaertig
 
+local bu_chunk_size = ngx.var.bu_chunk_size
+if bu_chunk_size == '' then
+  bu_chunk_size = nil
+end
+
 local config = {
     package_path = ngx.var.package_path,
     bu_checksum = ('off' ~=  ngx.var.bu_checksum),
     bu_sha1 = ('on' == ngx.var.bu_sha1),
-    bu_sha256 = ('on' == ngx.var.bu_sha256)
+    bu_sha256 = ('on' == ngx.var.bu_sha256),
+    bu_chunk_size = bu_chunk_size and (tonumber(bu_chunk_size) or bu_chunk_size)
 }
 
 if config.package_path then
@@ -80,6 +86,7 @@ if err then
   return report_result(err)
 end
 
-local ctx, err = reqp:new(handlers)
+local ctx
+ctx, err = reqp:new(handlers, config.bu_chunk_size)
 return report_result(err or ctx:process())
 
