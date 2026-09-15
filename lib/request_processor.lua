@@ -170,6 +170,14 @@ function _M.new(self, handlers, chunk_size)
       ctx.sha256 = xsha256
     end
 
+    local last_modified = headers['X-Last-Modified'] -- file modification time, UNIX timestamp in milliseconds
+    if last_modified then
+      if not last_modified:match('^%d+$') then
+        return nil, {400, "Bad X-Last-Modified format, expected UNIX timestamp in milliseconds: " .. last_modified}
+      end
+      ctx.last_modified = last_modified
+    end
+
     local socket
 
     -- prevent 'no body' error on empty request

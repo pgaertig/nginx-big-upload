@@ -1,3 +1,7 @@
+Changes with nginx-big-upload 1.7.0                           15 Sep 2026
+  *) Feature: X-Last-Modified header with file modification time, passed to the backend
+  *) Feature: mod_zip fork with optional file timestamps in the file list
+
 Changes with nginx-big-upload 1.6.0                           15 Sep 2026
   *) Feature: $bu_chunk_size (default 65535), socket timeout from nginx lua_socket_read_timeout
   *) Hardening: close file on aborted upload, fail on I/O errors and corrupt checksum state, luacheck cleanup

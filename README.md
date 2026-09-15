@@ -90,6 +90,7 @@ The request sent to backend will be POST request with url-encoded body params:
 * `checksum` - optional CRC32 checksum - see `$bu_checksum` setting;
 * `sha1` - optional SHA-1 hex string - see `$bu_sha1` setting;
 * `sha256` - optional SHA-256 hex string -see `$bu_sha256` setting;
+* `last_modified` - optional file modification time in milliseconds - see `X-Last-Modified` header;
 
 The `url` value should refer to location recognized in nginx configuration. Outbound absolute HTTP/HTTPS URLs were not tested yet. Remember to declare a backend location with `internal;` nginx directive to prevent external access to the backend endpoint.
  
@@ -131,6 +132,9 @@ In case of `$bu_checksum on` the server is not storing the state of CRC32 calcul
 In such case the client needs to keep that state. For every chunk except the first one
 the client should pass the value of previous chunk's response header `X-Checksum` as request header `X-Last-Checksum`. See example conversation in following sections or scripts in `test/` directory.
 
+### X-Last-Modified header
+Client can provide `X-Last-Modified` header with modification time of uploaded file as UNIX timestamp in milliseconds, e.g. `X-Last-Modified: 1694500000000`, the same value as `File.lastModified` in the browser. The value is passed to the backend in `last_modified` param with the last chunk.
+
 ### set $bu_chunk_size *bytes*
 Size in bytes of a single read from the request body socket. Each read is passed to all handlers (checksums, storage), so it also sets how much data is written to disk at once. It is not related to the size of chunks sent by the client. Default is `65535`. The value must be a positive integer.
 
@@ -156,6 +160,7 @@ Size in bytes of a single read from the request body socket. Each read is passed
     > Content-Range: bytes 5-9/10
     > Content-Disposition: attachement; filename=document.txt    #Only used after last chunk actually
     > X-Last-Checksum: 3053a846                                  #Pass checksum of previous chunks to continue CRC32
+    > X-Last-Modified: 1694500000000                             #Optional file modification time, only used after last chunk
     >
     > Part2
 
@@ -166,8 +171,9 @@ Size in bytes of a single read from the request body socket. Each read is passed
        > Content-Range: bytes 5-9/10
        > Content-Disposition: attachement; filename=document.txt
        > X-Last-Checksum: 3053a846
+       > X-Last-Modified: 1694500000000
        >
-       > id=123456789&path=/tmp/uploads/123456789&name=document.txt&checksum=478ac3e5&sha1=988dced4ecae71ee10dd5d8ddb97adb62c537704
+       > id=123456789&path=/tmp/uploads/123456789&name=document.txt&checksum=478ac3e5&sha1=988dced4ecae71ee10dd5d8ddb97adb62c537704&last_modified=1694500000000
 
     #Response from the backend goes to client, plus these headers
 

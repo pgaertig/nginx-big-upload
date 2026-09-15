@@ -13,7 +13,7 @@ export \
   LUA_NGINX_MODULE_VERSION=0.10.31 \
   LUA_RESTY_CORE_VERSION=0.1.34rc3 \
   LUA_RESTY_LRUCACHE_VERSION=0.15 \
-  MODZIP_COMMIT=a9f9afa441117831cc712a832c98408b3f0416f6 \
+  MODZIP_COMMIT=a69147f1f9e4486363fd9e6c293aa427747cbc25 \
   UPLOAD_PROGRESS_MODULE_VERSION=0.9.3
 
 
@@ -44,7 +44,8 @@ curl -fsSL https://github.com/vision5/ngx_devel_kit/archive/refs/tags/v${NGINX_D
 curl -fsSL https://github.com/openresty/lua-nginx-module/archive/refs/tags/v${LUA_NGINX_MODULE_VERSION}.tar.gz | tar xz
 curl -fsSL https://github.com/openresty/lua-resty-core/archive/refs/tags/v${LUA_RESTY_CORE_VERSION}.tar.gz | tar xz
 curl -fsSL https://github.com/openresty/lua-resty-lrucache/archive/refs/tags/v${LUA_RESTY_LRUCACHE_VERSION}.tar.gz | tar xz
-curl -fsSL https://github.com/evanmiller/mod_zip/archive/${MODZIP_COMMIT}.tar.gz | tar xz
+# mod_zip fork with optional "size@timestamp" in the file list, generated parser included
+curl -fsSL https://github.com/pgaertig/mod_zip/archive/${MODZIP_COMMIT}.tar.gz | tar xz
 curl -fsSL https://github.com/masterzen/nginx-upload-progress-module/archive/refs/tags/v${UPLOAD_PROGRESS_MODULE_VERSION}.tar.gz | tar xz
 
 # LuaJIT - build and install

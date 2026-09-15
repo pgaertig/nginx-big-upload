@@ -131,6 +131,9 @@ function doUpload(url, extraParams, sessionID, file, progress, success) {
             xhr.setRequestHeader('Content-Disposition', 'attachment; filename="' + encodeURIComponent(file.name) + '"');
             xhr.setRequestHeader('X-Content-Range', 'bytes ' + chunkStart + '-' + chunkEnd + '/' + file.size);
             xhr.setRequestHeader('X-Session-ID', sessionID);
+            if(file.lastModified) {
+                xhr.setRequestHeader('X-Last-Modified', file.lastModified);
+            }
             if(lastChecksum) {
                 //client must pass the checksum of all previous chunks
                 //this way server will continue checksum calculation
@@ -195,7 +198,12 @@ if (!!((typeof(File) !== 'undefined') && (typeof(Blob) !== 'undefined') && (type
             var backendFileId = getParam(responseText, "id");
             var backendFileName = getParam(responseText, "name");
             var backendFileSize = getParam(responseText, "size");
+            var backendFileChecksum = getParam(responseText, "checksum");
+            var backendFileLastModified = getParam(responseText, "last_modified");
             console.log('Success - server responded with:', responseText);
+            console.log('mod_zip file list line: ' + backendFileChecksum + ' ' + backendFileSize +
+                (backendFileLastModified ? '@' + Math.floor(backendFileLastModified / 1000) : '') +
+                ' /file/' + backendFileId + '/' + backendFileName + ' ' + decodeURIComponent(backendFileName));
 
 
             var div = document.createElement('div');

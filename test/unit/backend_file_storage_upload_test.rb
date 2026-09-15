@@ -84,6 +84,16 @@ class BackendFileStorageUploadTest < Test::Unit::TestCase
     end
   end
 
+  def test_last_modified_passed_to_backend
+    req.body = "Part1"
+    req['session-id'] = '12351'
+    req['X-Last-Modified'] = '1694500000000'
+    res = http.request(req)
+    assert_equal "202", res.code
+    params = CGI::parse(res.body)
+    assert_equal ["1694500000000"], params['last_modified']
+  end
+
   def test_content_disposition
     req.body = "Part1"
     req['session-id'] = '12345'

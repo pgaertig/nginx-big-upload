@@ -27,7 +27,8 @@ local function end_backend(self, ctx)
           name = ctx.get_name(),
           checksum = ctx.checksum,
           sha1 = ctx.sha1,
-          sha256 = ctx.sha256
+          sha256 = ctx.sha256,
+          last_modified = ctx.last_modified
         })
     })
   end
